@@ -1,5 +1,5 @@
 /** Catalog from 7api status probes. Rates are $/M tokens, shown with our markup applied. */
-import { MARKUP } from './src/lib/supabase.js'
+import { MARKUP } from './src/lib/api.js'
 
 // `discount` is how far 7api's price sits below the provider's official list price.
 // From it we derive the official price, then compute what the customer actually saves

@@ -1,17 +1,18 @@
-import { cors, json, MARKUP } from '../_shared/clients.ts'
-import { getStatus } from '../_shared/upstream.ts'
+import { Router } from 'express'
+import { MARKUP } from '../money.js'
+import { getStatus } from '../upstream.js'
+
+const router = Router()
 
 // Public, cached model health for the status page. Prices include our markup.
-let cache: { at: number; body: unknown } | null = null
+let cache = null
 const TTL = 60_000
 
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response(null, { headers: cors })
-
+router.get('/', async (req, res) => {
   if (!cache || Date.now() - cache.at > TTL) {
     try {
       const raw = await getStatus()
-      const models = (raw?.models ?? []).map((m: any) => ({
+      const models = (raw?.models ?? []).map((m) => ({
         model: m.model,
         status: m.status ?? 'unknown',
         availability_pct: m.availability_pct ?? null,
@@ -23,9 +24,11 @@ Deno.serve(async (req) => {
     } catch (e) {
       console.error('status: upstream failed', e)
       // Serve the last good answer if we have one, flagged as stale.
-      if (cache) return json({ ...(cache.body as object), stale: true }, 200, { 'Cache-Control': 'public, max-age=30' })
-      return json({ ok: false, error: 'status_unavailable' }, 503)
+      if (cache) return res.set('Cache-Control', 'public, max-age=30').json({ ...cache.body, stale: true })
+      return res.status(503).json({ ok: false, error: 'status_unavailable' })
     }
   }
-  return json(cache.body, 200, { 'Cache-Control': 'public, max-age=60' })
+  res.set('Cache-Control', 'public, max-age=60').json(cache.body)
 })
+
+export default router

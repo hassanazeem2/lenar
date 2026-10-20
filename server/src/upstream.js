@@ -1,26 +1,29 @@
 // 7api client. Subkey management uses our main key; usage/balance calls use the customer's subkey.
 // Docs: https://7api.st (Subkeys: resell your balance).
 
-const BASE = (Deno.env.get('UPSTREAM_BASE_URL') ?? 'https://7api.st/v1').replace(/\/$/, '')
-const MAIN_KEY = Deno.env.get('UPSTREAM_MAIN_KEY')!
+const BASE = (process.env.UPSTREAM_BASE_URL || 'https://7api.st/v1').replace(/\/$/, '')
+const MAIN_KEY = process.env.UPSTREAM_MAIN_KEY
 
 export class UpstreamError extends Error {
-  constructor(public status: number, public code: string, message: string) {
+  constructor(status, code, message) {
     super(message)
+    this.status = status
+    this.code = code
   }
 }
 
-async function call(path: string, init: RequestInit & { key?: string } = {}) {
+async function call(path, { key, method, body, headers } = {}) {
   const res = await fetch(`${BASE}${path}`, {
-    ...init,
+    method,
+    body,
     headers: {
-      Authorization: `Bearer ${init.key ?? MAIN_KEY}`,
+      Authorization: `Bearer ${key ?? MAIN_KEY}`,
       'Content-Type': 'application/json',
-      ...init.headers,
+      ...headers,
     },
   })
   const text = await res.text()
-  let data: any = null
+  let data = null
   try { data = text ? JSON.parse(text) : null } catch { /* non-JSON error page */ }
   if (!res.ok) {
     const code = data?.error?.code ?? data?.error?.type ?? data?.code ?? `http_${res.status}`
@@ -30,40 +33,28 @@ async function call(path: string, init: RequestInit & { key?: string } = {}) {
   return data
 }
 
-export type Subkey = {
-  id: string
-  label?: string
-  api_key?: string // only returned on create
-  revoked: boolean
-  balance_usd: number
-  spent_usd: number
-}
-
-const usd = (cents: number) => Math.floor(cents) / 100
+const usd = (cents) => Math.floor(cents) / 100
 
 /** Creates a subkey funded with `cents` from our main balance (7api minimum is $2). */
-export const createSubkey = (cents: number, label: string): Promise<Subkey> =>
+export const createSubkey = (cents, label) =>
   call('/subkeys', { method: 'POST', body: JSON.stringify({ amount_usd: usd(cents), label }) })
 
-export const getSubkey = (id: string): Promise<Subkey> => call(`/subkeys/${encodeURIComponent(id)}`)
+export const getSubkey = (id) => call(`/subkeys/${encodeURIComponent(id)}`)
 
-export const topupSubkey = (id: string, cents: number): Promise<Subkey> =>
+export const topupSubkey = (id, cents) =>
   call(`/subkeys/${encodeURIComponent(id)}/topup`, { method: 'POST', body: JSON.stringify({ amount_usd: usd(cents) }) })
 
 /** Revokes a subkey; its remaining balance returns to our main key. */
-export const deleteSubkey = (id: string) => call(`/subkeys/${encodeURIComponent(id)}`, { method: 'DELETE' })
-
-export type UsageWindow = { total_tokens?: number; cached_tokens?: number; cost_usd?: number; cache_savings_usd?: number }
+export const deleteSubkey = (id) => call(`/subkeys/${encodeURIComponent(id)}`, { method: 'DELETE' })
 
 /** Usage for one customer, read with their own subkey. */
-export const getUsage = (subkeySecret: string): Promise<{ windows?: Record<string, UsageWindow> }> =>
-  call('/usage', { key: subkeySecret })
+export const getUsage = (subkeySecret) => call('/usage', { key: subkeySecret })
 
 /** Model health. Works with the main key or any subkey. */
-export const getStatus = (key = Deno.env.get('STATUS_API_KEY') || MAIN_KEY) => call('/status', { key })
+export const getStatus = (key = process.env.STATUS_API_KEY || MAIN_KEY) => call('/status', { key })
 
 /** Retries 7api's "409 subkey_busy" (key mid-request) a few times before giving up. */
-export async function withBusyRetry<T>(fn: () => Promise<T>, tries = 4): Promise<T> {
+export async function withBusyRetry(fn, tries = 4) {
   for (let i = 0; ; i++) {
     try {
       return await fn()

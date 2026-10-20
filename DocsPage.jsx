@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from './src/ui.jsx'
-import { API_BASE } from './src/lib/supabase.js'
+import { API_BASE } from './src/lib/api.js'
 import { Link } from 'react-router-dom'
 import { AlertTriangle, Info } from 'lucide-react'
 import { C, cn, SHELL, STYLES, Nav, Footer, CopyLine } from './SimpleLanding.jsx'

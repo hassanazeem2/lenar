@@ -5,7 +5,7 @@ import {
   Activity, AlertTriangle, BookOpen, CreditCard, KeyRound, LayoutGrid, LogOut, RefreshCw,
 } from 'lucide-react'
 import { C, cn, STYLES, Wordmark, CopyLine } from './SimpleLanding.jsx'
-import { supabase, callFn, configured, useSession, API_BASE } from './src/lib/supabase.js'
+import { auth, api, configured, useSession, API_BASE } from './src/lib/api.js'
 import { Dialog, DialogContent, Tabs, TabsList, TabsTrigger, TooltipProvider } from './src/ui.jsx'
 
 const TOPUPS = [1000, 2500, 5000, 10000]
@@ -20,7 +20,7 @@ const money = (v, digits) => (v == null ? '—' : `$${Number(v).toLocaleString('
 const compact = (n) => (n == null ? '—' : Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(n))
 const pct = (a, b) => (b ? `${Math.round((a / b) * 100)}% cached` : 'no cache hits yet')
 
-/* ---------- demo data (until Supabase is configured) ---------- */
+/* ---------- demo data (until the backend is configured) ---------- */
 
 function demoAccount() {
   const now = Date.now()
@@ -56,7 +56,7 @@ function useAccount(enabled) {
   const load = useCallback(async () => {
     if (!configured) return setData(demoAccount())
     try {
-      setData(await callFn('account'))
+      setData(await api('/account'))
       setError(null)
     } catch (e) {
       setError(e.message)
@@ -299,8 +299,8 @@ function KeyPage({ acct, reload }) {
   const run = async (name) => {
     setBusy(name); setErr(null)
     try {
-      if (acct.demo) throw new Error('Demo mode: connect Supabase to manage real keys.')
-      const { key } = await callFn(name, {})
+      if (acct.demo) throw new Error('Demo mode: set VITE_API_URL to manage real keys.')
+      const { key } = await api(`/${name}`, {})
       setSecret(key)
       reload()
     } catch (e) { setErr(e.message) } finally { setBusy(null); setConfirmRoll(false) }
@@ -394,8 +394,8 @@ function Billing({ acct, reload }) {
   const topUp = async (amount_cents) => {
     setBusy(amount_cents); setErr(null)
     try {
-      if (acct.demo) throw new Error('Demo mode: connect Supabase and Stripe to take real payments.')
-      const { url } = await callFn('create-checkout', { amount_cents })
+      if (acct.demo) throw new Error('Demo mode: set VITE_API_URL to take real payments.')
+      const { url } = await api('/create-checkout', { amount_cents })
       window.location.href = url
     } catch (e) { setErr(e.message); setBusy(null) }
   }
@@ -508,7 +508,7 @@ export default function Dashboard() {
           <div className="mt-auto border-t px-3 pt-4" style={{ borderColor: C.line }}>
             <p className="truncate text-xs" style={{ color: C.dim }}>{email}</p>
             {configured ? (
-              <button type="button" onClick={() => supabase.auth.signOut()} className="mt-2 inline-flex items-center gap-1.5 text-xs hover:text-white" style={{ color: C.faint }}>
+              <button type="button" onClick={() => auth.signOut()} className="mt-2 inline-flex items-center gap-1.5 text-xs hover:text-white" style={{ color: C.faint }}>
                 <LogOut size={12} /> Sign out
               </button>
             ) : null}
@@ -520,7 +520,7 @@ export default function Dashboard() {
           <div className="flex h-14 items-center px-4">
             <Link to="/"><Wordmark height={14} /></Link>
             {configured ? (
-              <button type="button" onClick={() => supabase.auth.signOut()} className="btn btn-ghost btn-xs ml-auto font-normal text-white/50"><LogOut size={12} /> Sign out</button>
+              <button type="button" onClick={() => auth.signOut()} className="btn btn-ghost btn-xs ml-auto font-normal text-white/50"><LogOut size={12} /> Sign out</button>
             ) : null}
           </div>
           <nav className="flex gap-1 overflow-x-auto px-3 pb-2">{NAV.map((n) => <SideLink key={n.to} item={n} layoutId="top-pill" />)}</nav>
@@ -530,7 +530,7 @@ export default function Dashboard() {
           <div className="mx-auto max-w-5xl">
             {acct?.demo ? (
               <div className="alert alert-info alert-soft mb-6 text-sm">
-                <span><b>Demo data.</b> Add your Supabase keys to <code>.env</code> to see your real account. See SETUP.md.</span>
+                <span><b>Demo data.</b> Set <code>VITE_API_URL</code> in <code>.env</code> to see your real account. See SETUP.md.</span>
               </div>
             ) : null}
             {error ? <div role="alert" className="alert alert-error alert-soft mb-6 text-sm"><span>{error}</span></div> : null}

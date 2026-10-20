@@ -10,6 +10,8 @@ import Dashboard from '../Dashboard.jsx'
 import DocsPage from '../DocsPage.jsx'
 import StatusPage from '../StatusPage.jsx'
 import ResetPassword from '../ResetPassword.jsx'
+import AuthCallback from '../AuthCallback.jsx'
+import VerifyEmail from '../VerifyEmail.jsx'
 import NotFound from '../NotFound.jsx'
 
 // Sign in and sign up share one key so the toggle between them slides instead of re-entering the page.
@@ -54,6 +56,8 @@ function AnimatedRoutes() {
           <Route path="/signin" element={<AuthScreen mode="signin" />} />
           <Route path="/dashboard/*" element={<Dashboard />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
+          <Route path="/verify" element={<VerifyEmail />} />
           <Route path="*" element={<NotFound />} />
           <Route path="/docs" element={<DocsPage />} />
           <Route path="/status" element={<StatusPage />} />

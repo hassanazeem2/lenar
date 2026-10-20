@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, Eye, EyeOff, MailCheck } from 'lucide-react'
 import { C, cn, STYLES, Wordmark, AsciiRidge } from './SimpleLanding.jsx'
-import { supabase, configured } from './src/lib/supabase.js'
+import { auth, configured, useSession } from './src/lib/api.js'
 import { Tabs, TabsList, TabsTrigger } from './src/ui.jsx'
 
 const AUTH_STYLES = `
@@ -212,9 +212,10 @@ export default function AuthScreen({ mode = 'signup' }) {
   useEffect(() => { setErrors({}); setConfirm(''); setView('form') }, [mode])
 
   // Already signed in? Go straight to the dashboard.
+  const session = useSession()
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => { if (data.session) navigate('/dashboard', { replace: true }) })
-  }, [navigate])
+    if (session) navigate('/dashboard', { replace: true })
+  }, [session, navigate])
 
   const fail = (next) => { setErrors(next); setShake((k) => k + 1) }
   const clear = (k) => setErrors((e) => ({ ...e, [k]: undefined, form: undefined }))
@@ -234,31 +235,27 @@ export default function AuthScreen({ mode = 'signup' }) {
   const onSubmit = async (e) => {
     e.preventDefault()
     if (loading || !validate()) return
-    if (!configured) return fail({ form: 'Sign-in isn\'t connected yet. Add your Supabase keys to .env (see SETUP.md).' })
+    if (!configured) return fail({ form: 'Sign-in isn\'t connected yet. Add your API URL to .env (see SETUP.md).' })
     setLoading(true)
     try {
       if (view === 'reset') {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${location.origin}/reset-password` })
-        if (error) return fail({ form: error.message })
-        setSentMsg(`We sent a reset link to ${email}.`)
+        await auth.forgotPassword(email).catch((e) => { throw e })
+        setSentMsg(`If ${email} has an account, we sent a reset link.`)
         return setView('sent')
       }
-      const { data, error } = isSignup
-        ? await supabase.auth.signUp({ email, password, options: { emailRedirectTo: `${location.origin}/dashboard` } })
-        : await supabase.auth.signInWithPassword({ email, password })
-      if (error) return fail({ form: error.message })
-      if (data.session) return navigate('/dashboard')
-      setSentMsg(`We sent a confirmation link to ${email}. Click it to finish creating your account.`)
-      setView('sent')
+      if (isSignup) await auth.signUp(email, password)
+      else await auth.signIn(email, password)
+      navigate('/dashboard')
+    } catch (e) {
+      fail({ form: e.message })
     } finally {
       setLoading(false)
     }
   }
 
-  const google = async () => {
-    if (!configured) return fail({ form: 'Sign-in isn\'t connected yet. Add your Supabase keys to .env (see SETUP.md).' })
-    const { error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `${location.origin}/dashboard` } })
-    if (error) fail({ form: error.message })
+  const google = () => {
+    if (!configured) return fail({ form: 'Sign-in isn\'t connected yet. Add your API URL to .env (see SETUP.md).' })
+    auth.signInWithGoogle()
   }
 
   const heading = view === 'reset' ? 'Reset your password' : isSignup ? 'Create your account' : 'Welcome back'

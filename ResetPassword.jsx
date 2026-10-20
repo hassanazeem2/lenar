@@ -1,36 +1,33 @@
-import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useState } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Eye, EyeOff, KeyRound } from 'lucide-react'
 import { C, STYLES, Wordmark, AsciiRidge } from './SimpleLanding.jsx'
-import { supabase, configured } from './src/lib/supabase.js'
+import { auth } from './src/lib/api.js'
 
-// Landing page for the "reset password" email. Supabase signs the user in with a recovery
-// session from the link; here they choose a new password.
+// Landing page for the "reset password" email. The link carries a one-time token; here they
+// choose a new password and we exchange the token for a session.
 export default function ResetPassword() {
   const navigate = useNavigate()
-  const [ready, setReady] = useState(false)
+  const [params] = useSearchParams()
+  const token = params.get('token')
+  const ready = Boolean(token)
   const [password, setPassword] = useState('')
   const [show, setShow] = useState(false)
   const [error, setError] = useState(null)
   const [busy, setBusy] = useState(false)
 
-  useEffect(() => {
-    if (!configured) return
-    supabase.auth.getSession().then(({ data }) => setReady(Boolean(data.session)))
-    const { data } = supabase.auth.onAuthStateChange((event, s) => {
-      if (event === 'PASSWORD_RECOVERY' || s) setReady(true)
-    })
-    return () => data.subscription.unsubscribe()
-  }, [])
-
   const submit = async (e) => {
     e.preventDefault()
     if (password.length < 8) return setError('Use at least 8 characters')
     setBusy(true); setError(null)
-    const { error: err } = await supabase.auth.updateUser({ password })
-    setBusy(false)
-    if (err) return setError(err.message)
-    navigate('/dashboard', { replace: true })
+    try {
+      await auth.resetPassword(token, password)
+      navigate('/dashboard', { replace: true })
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setBusy(false)
+    }
   }
 
   return (

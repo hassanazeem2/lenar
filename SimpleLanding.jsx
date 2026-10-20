@@ -5,7 +5,7 @@ import {
   Layers, LayoutTemplate, Plus, RefreshCw, Sparkles, Tag, Zap,
 } from 'lucide-react'
 import { CATALOG, MODEL_COUNT, PROVIDER_COUNT } from './models.js'
-import { API_BASE, useSession } from './src/lib/supabase.js'
+import { API_BASE, useSession } from './src/lib/api.js'
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent, Tabs } from './src/ui.jsx'
 import { Tabs as TabsP } from '@animate-ui/react/primitives/radix-ui'
 import { motion } from 'motion/react'

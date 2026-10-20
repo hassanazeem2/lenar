@@ -1,7 +1,0 @@
-# Stripe calls the webhook without a Supabase JWT; it's verified by its signature instead.
-[functions.stripe-webhook]
-verify_jwt = false
-
-# The status page is public.
-[functions.status]
-verify_jwt = false

@@ -3,7 +3,7 @@ import { RefreshCw } from 'lucide-react'
 import { C, cn, SHELL, STYLES, Nav, Footer, Reveal } from './SimpleLanding.jsx'
 import { TooltipProvider, Tip } from './src/ui.jsx'
 import { FAMILY_ORDER, CATALOG } from './models.js'
-import { fnUrl } from './src/lib/supabase.js'
+import { statusUrl as fnUrl } from './src/lib/api.js'
 
 const STATUS = {
   up: { label: 'Operational', cls: 'status-success', color: C.up },
