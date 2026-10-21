@@ -2,6 +2,7 @@ import { Router } from 'express'
 import Stripe from 'stripe'
 import { requireAuth } from '../auth.js'
 import { q } from '../db.js'
+import { siteUrl } from '../site.js'
 
 const router = Router()
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
@@ -15,7 +16,7 @@ router.post('/', requireAuth, async (req, res) => {
 
   const { rows } = await q('select email from users where id = $1', [req.userId])
   const email = rows[0]?.email
-  const site = process.env.SITE_URL
+  const site = siteUrl
 
   const session = await stripe.checkout.sessions.create({
     mode: 'payment',

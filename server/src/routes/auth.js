@@ -4,9 +4,9 @@ import crypto from 'node:crypto'
 import { q } from '../db.js'
 import { signToken, requireAuth } from '../auth.js'
 import { sendVerifyEmail, sendResetEmail } from '../email.js'
+import { siteUrl as SITE_URL } from '../site.js'
 
 const router = Router()
-const SITE_URL = process.env.SITE_URL
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const token = () => crypto.randomBytes(32).toString('hex')

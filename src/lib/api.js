@@ -2,13 +2,13 @@ import { useEffect, useState } from 'react'
 
 // Your Railway backend (auth, account, keys, Stripe checkout). The public model API itself
 // goes through API_BASE below, which is this domain's own /v1 (proxied to 7api by the worker).
-const API_URL = (import.meta.env.VITE_API_URL || 'https://lenar-api.up.railway.app').replace(/\/$/, '')
+const API_URL = (import.meta.env.VITE_API_URL || 'https://lenar-production.up.railway.app').replace(/\/$/, '')
 
 export const configured = Boolean(import.meta.env.VITE_API_URL)
 if (!configured) console.warn('VITE_API_URL is not set: copy .env.example to .env and fill it in.')
 
 /** Base URL customers point their SDK at. Your domain (proxied to 7api by the Cloudflare worker). */
-export const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'https://lenar.ai/v1').replace(/\/$/, '')
+export const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'https://lenar.pages.dev/v1').replace(/\/$/, '')
 
 /** Customer price ÷ 7api cost. Must match CREDIT_MARKUP on the server and the worker. */
 export const MARKUP = Math.max(1, Number(import.meta.env.VITE_CREDIT_MARKUP) || 1)
