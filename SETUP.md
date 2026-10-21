@@ -6,7 +6,7 @@ This gets the site live with working sign-in, payments and API keys.
 
 - **Cloudflare Pages** hosts the website (`dist/`, the Vite build) and the `/v1` API proxy, which forwards your customers' requests to 7api. Both are served by one `_worker.js` ("advanced mode"), built automatically from `worker/src/index.js` by `npm run build`.
 - **Railway** runs the backend: a Node/Express server (`server/`) plus a Postgres database, handling sign-in, payments and keys.
-- **Stripe** takes card payments. **Coinbase Business** takes USDC on Base. When either payment confirms, the webhook creates their 7api subkey funded with the credit, or tops up the one they already have.
+- **Stripe** takes card payments. **NOWPayments** takes crypto. When either payment finishes, the webhook creates their 7api subkey funded with the credit, or tops up the one they already have.
 - **7api** runs the models. Each customer gets one subkey, funded from your 7api main balance.
 
 **Your margin:** `CREDIT_MARKUP` sets it. With `1.25`, a customer who pays $10 gets $8 of 7api credit, and every price and balance they see is 7api's number × 1.25. Stripe's fee (about 2.9% + 30¢) comes out of your margin, so don't set it near 1. `CREDIT_MARKUP` must be the same value on the Railway backend, the Cloudflare worker, and the frontend's `VITE_CREDIT_MARKUP`.
@@ -38,19 +38,18 @@ This gets the site live with working sign-in, payments and API keys.
    - Events: `checkout.session.completed` and `checkout.session.async_payment_succeeded`
    - Copy the **signing secret** (`whsec_…`) into `STRIPE_WEBHOOK_SECRET` on Railway.
 
-## 2b. Crypto (USDC on Base)
+## 2b. Crypto (NOWPayments)
 
-Coinbase Commerce shut down. Crypto top-ups use [Coinbase Business checkouts](https://docs.cdp.coinbase.com/coinbase-business/checkout-apis/overview), which settle in USDC on Base.
+Customers pick the coin on a NOWPayments invoice. Credit is added only when the IPN says the payment is `finished`.
 
-1. Create a Coinbase Business account and a **secret API key**. Choose **ECDSA**, not Ed25519.
+1. In the NOWPayments dashboard, copy the **API key** and generate an **IPN secret** under Payment Settings.
 2. On the Railway service set:
-   - `COINBASE_API_KEY_NAME` — the key id (`organizations/…/apiKeys/…`)
-   - `COINBASE_API_KEY_SECRET` — the EC private key. In the Railway variable, keep the PEM on one line with `\n` where the line breaks were.
-   - `COINBASE_WEBHOOK_SECRET` — the `secret` returned when you create the webhook subscription below.
-3. Subscribe `https://YOUR_RAILWAY_API_URL/crypto-webhook` to `checkout.payment.success`, `checkout.payment.failed`, `checkout.payment.expired`, `checkout.refund.success`, and `checkout.refund.failed`. The signing header is `X-Hook0-Signature`. Credit is added only on `checkout.payment.success`.
-4. Redeploy the Railway service. Billing then offers **Crypto** next to **Card**. The same amounts apply, and the key is still created on the first confirmed payment.
+   - `NOWPAYMENTS_API_KEY`
+   - `NOWPAYMENTS_IPN_SECRET`
+   - `API_BASE_URL` — this server's public https URL, for example `https://lenar-production.up.railway.app`. The invoice sends payment updates to `{API_BASE_URL}/crypto-webhook`.
+3. Redeploy the Railway service. Billing then offers **Crypto** next to **Card**. The same amounts apply, and the key is still created on the first finished payment.
 
-A refund in Coinbase does not remove credit by itself. Take it back with 7api's withdraw endpoint, the same as a Stripe refund.
+A refund in NOWPayments does not remove credit by itself. Take it back with 7api's withdraw endpoint, the same as a Stripe refund.
 
 ## 3. Google sign-in (optional)
 

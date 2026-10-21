@@ -10,7 +10,7 @@ async function activeKey(userId) {
 
 // Claims the payment once, then moves credit onto the customer's 7api subkey
 // (creating that subkey on their first payment). Returns 'funded', 'busy', or 'ok'.
-// A non-2xx from the caller makes Stripe or Coinbase retry; releasing the claim
+// A non-2xx from the caller makes Stripe or NOWPayments retry; releasing the claim
 // lets that retry try again. claim_topup keeps a second delivery from funding twice.
 export async function fundPayment({ id, userId, paidCents, provider }) {
   const credit = creditFor(paidCents)

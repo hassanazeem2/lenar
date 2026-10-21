@@ -443,7 +443,7 @@ function Billing({ acct, reload }) {
           </div>
           <p className="mt-4 text-xs leading-relaxed" style={{ color: C.faint }}>
             {method === 'crypto'
-              ? 'Crypto is USDC on Base, paid through Coinbase. Credit is added when the payment confirms, and it does not expire.'
+              ? 'Crypto is paid through NOWPayments. You choose the coin at checkout. Credit is added when the payment finishes, and it does not expire.'
               : 'Card payments are handled by Stripe. Credit does not expire.'}
           </p>
         </Card>
