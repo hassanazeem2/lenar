@@ -6,7 +6,7 @@ This gets the site live with working sign-in, payments and API keys.
 
 - **Cloudflare Pages** hosts the website (`dist/`, the Vite build) and the `/v1` API proxy, which forwards your customers' requests to 7api. Both are served by one `_worker.js` ("advanced mode"), built automatically from `worker/src/index.js` by `npm run build`.
 - **Railway** runs the backend: a Node/Express server (`server/`) plus a Postgres database, handling sign-in, payments and keys.
-- **Stripe** takes card payments. **NOWPayments** takes crypto. When either payment finishes, the webhook creates their 7api subkey funded with the credit, or tops up the one they already have.
+- **Stripe** takes card payments. **WolvPay** takes crypto. When either payment confirms, the webhook creates their 7api subkey funded with the credit, or tops up the one they already have.
 - **7api** runs the models. Each customer gets one subkey, funded from your 7api main balance.
 
 **Your margin:** `CREDIT_MARKUP` sets it. With `1.25`, a customer who pays $10 gets $8 of 7api credit, and every price and balance they see is 7api's number × 1.25. Stripe's fee (about 2.9% + 30¢) comes out of your margin, so don't set it near 1. `CREDIT_MARKUP` must be the same value on the Railway backend, the Cloudflare worker, and the frontend's `VITE_CREDIT_MARKUP`.
@@ -38,18 +38,15 @@ This gets the site live with working sign-in, payments and API keys.
    - Events: `checkout.session.completed` and `checkout.session.async_payment_succeeded`
    - Copy the **signing secret** (`whsec_…`) into `STRIPE_WEBHOOK_SECRET` on Railway.
 
-## 2b. Crypto (NOWPayments)
+## 2b. Crypto (WolvPay)
 
-Customers pick the coin on a NOWPayments invoice. Credit is added only when the IPN says the payment is `finished`.
+Customers pick the coin on a WolvPay invoice. Credit is added only when the webhook says the invoice is `PAID`.
 
-1. In the NOWPayments dashboard, copy the **API key** and generate an **IPN secret** under Payment Settings.
-2. On the Railway service set:
-   - `NOWPAYMENTS_API_KEY`
-   - `NOWPAYMENTS_IPN_SECRET`
-   - `API_BASE_URL` — this server's public https URL, for example `https://lenar-production.up.railway.app`. The invoice sends payment updates to `{API_BASE_URL}/crypto-webhook`.
-3. Redeploy the Railway service. Billing then offers **Crypto** next to **Card**. The same amounts apply, and the key is still created on the first finished payment.
+1. In the WolvPay dashboard, copy the API key and the webhook secret.
+2. Set the webhook URL to `https://lenar-production.up.railway.app/crypto-webhook`. WolvPay signs each delivery with `X-WolvPay-Signature`. Their requests come from `128.140.76.192`.
+3. On the Railway service set `WOLVPAY_API_KEY` and `WOLVPAY_WEBHOOK_SECRET`, then redeploy. Billing offers **Crypto** next to **Card**. The same amounts apply, and the key is still created on the first confirmed payment.
 
-A refund in NOWPayments does not remove credit by itself. Take it back with 7api's withdraw endpoint, the same as a Stripe refund.
+A refund in WolvPay does not remove credit by itself. Take it back with 7api's withdraw endpoint, the same as a Stripe refund.
 
 ## 3. Google sign-in (optional)
 

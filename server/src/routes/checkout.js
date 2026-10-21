@@ -4,7 +4,7 @@ import { requireAuth } from '../auth.js'
 import { q } from '../db.js'
 import { siteUrl } from '../site.js'
 import { TOPUP_CENTS } from '../amounts.js'
-import { createCryptoInvoice, cryptoConfigured } from '../nowpayments.js'
+import { createCryptoInvoice, cryptoConfigured } from '../wolvpay.js'
 
 const router = Router()
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
@@ -40,19 +40,17 @@ router.post('/crypto', requireAuth, async (req, res) => {
   const { amount_cents } = req.body || {}
   if (!TOPUP_CENTS.has(amount_cents)) return res.status(400).json({ error: 'invalid amount' })
   if (!cryptoConfigured()) return res.status(503).json({ error: 'Crypto payments are not turned on yet.' })
-  const apiBase = (process.env.API_BASE_URL || '').replace(/\/$/, '')
-  if (!siteUrl.startsWith('https://') || !apiBase.startsWith('https://')) {
-    return res.status(500).json({ error: 'SITE_URL and API_BASE_URL must be https addresses.' })
-  }
+  if (!siteUrl.startsWith('https://')) return res.status(500).json({ error: 'SITE_URL must be an https address.' })
 
   try {
     const invoice = await createCryptoInvoice({
       amountCents: amount_cents,
-      userId: req.userId,
-      successUrl: `${siteUrl}/dashboard/billing?topup=success`,
-      cancelUrl: `${siteUrl}/dashboard/billing`,
-      ipnUrl: `${apiBase}/crypto-webhook`,
+      redirectUrl: `${siteUrl}/dashboard/billing?topup=success`,
     })
+    await q(
+      'insert into crypto_invoices (invoice_id, user_id, amount_cents) values ($1, $2, $3)',
+      [invoice.id, req.userId, amount_cents],
+    )
     res.json({ url: invoice.url })
   } catch (e) {
     console.error('crypto checkout failed', e)
