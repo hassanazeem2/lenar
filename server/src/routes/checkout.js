@@ -3,16 +3,15 @@ import Stripe from 'stripe'
 import { requireAuth } from '../auth.js'
 import { q } from '../db.js'
 import { siteUrl } from '../site.js'
+import { TOPUP_CENTS } from '../amounts.js'
+import { createCryptoCheckout, cryptoConfigured } from '../coinbase.js'
 
 const router = Router()
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
 
-// Top-up amounts the dashboard offers, in cents. Anything else is rejected.
-const AMOUNTS = new Set([1000, 2500, 5000, 10000])
-
 router.post('/', requireAuth, async (req, res) => {
   const { amount_cents } = req.body || {}
-  if (!AMOUNTS.has(amount_cents)) return res.status(400).json({ error: 'invalid amount' })
+  if (!TOPUP_CENTS.has(amount_cents)) return res.status(400).json({ error: 'invalid amount' })
 
   const { rows } = await q('select email from users where id = $1', [req.userId])
   const email = rows[0]?.email
@@ -35,6 +34,26 @@ router.post('/', requireAuth, async (req, res) => {
   })
 
   res.json({ url: session.url })
+})
+
+router.post('/crypto', requireAuth, async (req, res) => {
+  const { amount_cents } = req.body || {}
+  if (!TOPUP_CENTS.has(amount_cents)) return res.status(400).json({ error: 'invalid amount' })
+  if (!cryptoConfigured()) return res.status(503).json({ error: 'Crypto payments are not turned on yet.' })
+  if (!siteUrl.startsWith('https://')) return res.status(500).json({ error: 'SITE_URL must be an https address.' })
+
+  try {
+    const checkout = await createCryptoCheckout({
+      amountCents: amount_cents,
+      userId: req.userId,
+      successUrl: `${siteUrl}/dashboard/billing?topup=success`,
+      failUrl: `${siteUrl}/dashboard/billing`,
+    })
+    res.json({ url: checkout.url })
+  } catch (e) {
+    console.error('crypto checkout failed', e)
+    res.status(502).json({ error: 'Could not start the crypto payment. Try again.' })
+  }
 })
 
 export default router

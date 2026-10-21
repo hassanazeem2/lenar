@@ -20,7 +20,7 @@ router.get('/', requireAuth, async (req, res) => {
     q('select email from users where id = $1', [userId]),
     activeKey(userId),
     q(
-      `select stripe_session_id, paid_cents, credit_cents, funded_at, created_at from topups
+      `select stripe_session_id, paid_cents, credit_cents, funded_at, created_at, provider from topups
        where user_id = $1 order by created_at desc limit 50`,
       [userId],
     ),
@@ -44,6 +44,7 @@ router.get('/', requireAuth, async (req, res) => {
       paid: t.paid_cents / 100,
       credited: display(t.credit_cents / 100),
       status: t.funded_at ? 'funded' : 'pending',
+      provider: t.provider === 'crypto' ? 'crypto' : 'card',
       created_at: t.created_at,
     })),
     balance: null,

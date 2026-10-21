@@ -380,10 +380,11 @@ client = OpenAI(
 function Billing({ acct, reload }) {
   const [params, setParams] = useSearchParams()
   const [busy, setBusy] = useState(null)
+  const [method, setMethod] = useState('card')
   const [err, setErr] = useState(null)
   const success = params.get('topup') === 'success'
 
-  // The webhook lands a few seconds after Stripe redirects back; poll until it shows up.
+  // The webhook lands a few seconds after the customer comes back; poll until it shows up.
   useEffect(() => {
     if (!success) return
     const t = setInterval(reload, 3000)
@@ -395,7 +396,8 @@ function Billing({ acct, reload }) {
     setBusy(amount_cents); setErr(null)
     try {
       if (acct.demo) throw new Error('Demo mode: set VITE_API_URL to take real payments.')
-      const { url } = await api('/create-checkout', { amount_cents })
+      const path = method === 'crypto' ? '/create-checkout/crypto' : '/create-checkout'
+      const { url } = await api(path, { amount_cents })
       window.location.href = url
     } catch (e) { setErr(e.message); setBusy(null) }
   }
@@ -412,7 +414,20 @@ function Billing({ acct, reload }) {
         <Card title="Add credit">
           <p className="uppercase tracking-wider" style={{ fontSize: 10, color: C.faint }}>Balance</p>
           <p className="mt-1 text-4xl font-medium"><AnimatedNumber value={acct.balance ?? (acct.key ? null : 0)} format={(v) => money(v, 2)} /></p>
-          <div className="mt-6 grid grid-cols-2 gap-2">
+          <div className="mt-6 flex rounded-lg border p-0.5" style={{ borderColor: C.line2 }}>
+            {[['card', 'Card'], ['crypto', 'Crypto']].map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setMethod(id)}
+                className="h-8 flex-1 rounded-md text-sm"
+                style={{ background: method === id ? 'rgba(244,245,246,0.08)' : 'transparent', color: method === id ? C.fg : C.dim }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-2">
             {TOPUPS.map((c) => (
               <motion.button
                 key={c}
@@ -427,18 +442,21 @@ function Billing({ acct, reload }) {
             ))}
           </div>
           <p className="mt-4 text-xs leading-relaxed" style={{ color: C.faint }}>
-            Payments are handled by Stripe. Credit doesn't expire.
+            {method === 'crypto'
+              ? 'Crypto is USDC on Base, paid through Coinbase. Credit is added when the payment confirms, and it does not expire.'
+              : 'Card payments are handled by Stripe. Credit does not expire.'}
           </p>
         </Card>
         <Card title="History">
           {acct.topups?.length ? (
             <div className="overflow-x-auto">
               <table className="table table-sm">
-                <thead><tr style={{ color: C.faint }}><th>Date</th><th>Paid</th><th>Credit</th><th>Status</th></tr></thead>
+                <thead><tr style={{ color: C.faint }}><th>Date</th><th>Method</th><th>Paid</th><th>Credit</th><th>Status</th></tr></thead>
                 <tbody>
                   {acct.topups.map((t) => (
                     <tr key={t.id} className="border-white/5">
                       <td style={{ color: C.dim }}>{new Date(t.created_at).toLocaleDateString()}</td>
+                      <td>{t.provider === 'crypto' ? 'Crypto' : 'Card'}</td>
                       <td>{money(t.paid, 2)}</td>
                       <td>{money(t.credited, 2)}</td>
                       <td><span className={cn('badge badge-sm badge-soft', t.status === 'funded' ? 'badge-success' : 'badge-warning')}>{t.status === 'funded' ? 'Added' : 'Processing'}</span></td>

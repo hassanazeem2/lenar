@@ -8,6 +8,7 @@ import rollKeyRoutes from './routes/rollKey.js'
 import revealKeyRoutes from './routes/revealKey.js'
 import checkoutRoutes from './routes/checkout.js'
 import stripeWebhookRoutes from './routes/stripeWebhook.js'
+import cryptoWebhookRoutes from './routes/cryptoWebhook.js'
 import statusRoutes from './routes/status.js'
 import { siteOrigins } from './site.js'
 
@@ -23,6 +24,7 @@ app.use(cors({ origin: siteOrigins, credentials: false }))
 // Stripe needs the raw body to verify its signature, so this is mounted before express.json()
 // and given its own raw-body parser instead of the JSON one.
 app.use('/stripe-webhook', express.raw({ type: 'application/json' }), stripeWebhookRoutes)
+app.use('/crypto-webhook', express.raw({ type: 'application/json' }), cryptoWebhookRoutes)
 
 app.use(express.json())
 

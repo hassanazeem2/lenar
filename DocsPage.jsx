@@ -117,7 +117,7 @@ const SECTIONS = [
         title: 'Quickstart',
         body: () => (
           <>
-            <P>1. <Link to="/signup" className="underline underline-offset-2">Create an account</Link> and top up credits from the dashboard. Your key is created after your first top-up.</P>
+            <P>1. <Link to="/signup" className="underline underline-offset-2">Create an account</Link> and top up credits from the dashboard, by card or USDC. Your key is created after your first top-up.</P>
             <P>2. Reveal your key and copy it. We only show the full key once.</P>
             <Callout warn>Keep your key on the server. Never put it in front-end code, a mobile app, or a public repo.</Callout>
             <P>3. Point your SDK at lenar and send your first request:</P>
