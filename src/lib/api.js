@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 
 // Your Railway backend (auth, account, keys, Stripe checkout). In production the Pages worker
-// proxies these routes on the same domain, so the browser never makes a cross-origin call.
+// proxies /api/* on the same domain to it, so the browser never makes a cross-origin call.
 // Local dev calls Railway directly.
 const API_URL = import.meta.env.PROD
-  ? ''
+  ? '/api'
   : (import.meta.env.VITE_API_URL || 'https://lenar-production.up.railway.app').replace(/\/$/, '')
 
 export const configured = Boolean(import.meta.env.VITE_API_URL)

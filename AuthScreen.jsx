@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, Eye, EyeOff, MailCheck } from 'lucide-react'
 import { C, cn, STYLES, Wordmark, AsciiRidge } from './SimpleLanding.jsx'
 import { auth, configured, useSession } from './src/lib/api.js'
@@ -210,6 +210,12 @@ export default function AuthScreen({ mode = 'signup' }) {
 
   // Reset state when switching between sign in and sign up.
   useEffect(() => { setErrors({}); setConfirm(''); setView('form') }, [mode])
+
+  // The backend sends failed Google sign-ins back here with ?error=google_failed.
+  const [params] = useSearchParams()
+  useEffect(() => {
+    if (params.get('error') === 'google_failed') setErrors({ form: 'Google sign-in failed. Try again, or use email and password.' })
+  }, [params])
 
   // Already signed in? Go straight to the dashboard.
   const session = useSession()

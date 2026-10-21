@@ -37,6 +37,8 @@ app.use('/reveal-key', revealKeyRoutes)
 app.use('/create-checkout', checkoutRoutes)
 app.use('/status', statusRoutes)
 
+// Express 5 sends errors thrown in async handlers here, so a database or Stripe failure
+// becomes a 500 instead of crashing the process.
 app.use((err, req, res, next) => {
   console.error(err)
   res.status(500).json({ error: 'internal error' })

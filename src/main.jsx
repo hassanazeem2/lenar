@@ -1,4 +1,4 @@
-import { StrictMode, useEffect } from 'react'
+import { StrictMode, Suspense, lazy, useEffect } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { AnimatePresence, MotionConfig, motion } from 'motion/react'
@@ -6,13 +6,15 @@ import './index.css'
 import SimpleLanding from '../SimpleLanding.jsx'
 import PricingPage from '../PricingPage.jsx'
 import AuthScreen from '../AuthScreen.jsx'
-import Dashboard from '../Dashboard.jsx'
-import DocsPage from '../DocsPage.jsx'
-import StatusPage from '../StatusPage.jsx'
 import ResetPassword from '../ResetPassword.jsx'
 import AuthCallback from '../AuthCallback.jsx'
 import VerifyEmail from '../VerifyEmail.jsx'
 import NotFound from '../NotFound.jsx'
+
+// The bigger pages load on first visit, so the landing page doesn't download them.
+const Dashboard = lazy(() => import('../Dashboard.jsx'))
+const DocsPage = lazy(() => import('../DocsPage.jsx'))
+const StatusPage = lazy(() => import('../StatusPage.jsx'))
 
 // Sign in and sign up share one key so the toggle between them slides instead of re-entering the page.
 const pageKey = (path) => {
@@ -49,6 +51,7 @@ function AnimatedRoutes() {
         animate={{ opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.45, ease: [0.16, 1, 0.3, 1] } }}
         exit={{ opacity: 0, y: -8, filter: 'blur(4px)', transition: { duration: 0.2, ease: [0.4, 0, 1, 1] } }}
       >
+        <Suspense fallback={null}>
         <Routes location={location}>
           <Route path="/" element={<SimpleLanding />} />
           <Route path="/pricing" element={<PricingPage />} />
@@ -62,6 +65,7 @@ function AnimatedRoutes() {
           <Route path="/docs" element={<DocsPage />} />
           <Route path="/status" element={<StatusPage />} />
         </Routes>
+        </Suspense>
       </motion.div>
     </AnimatePresence>
   )

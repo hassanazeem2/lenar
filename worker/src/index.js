@@ -59,12 +59,13 @@ async function proxyToUpstream(request, env) {
   return new Response(upstream.body, { status: upstream.status, statusText: upstream.statusText, headers: out })
 }
 
-// Browser calls for accounts stay on this domain. The worker forwards them to Railway,
-// so lenar.cc does not have to be added to the backend's CORS list.
-const ACCOUNT_API = ['/auth', '/account', '/roll-key', '/reveal-key', '/create-checkout', '/status']
+// Browser calls for accounts stay on this domain under /api. The worker strips the prefix and
+// forwards them to Railway, so lenar.cc does not have to be added to the backend's CORS list.
+// The prefix keeps them apart from page routes like /status and /auth/callback.
+const ACCOUNT_API = '/api'
 
 function isAccountApi(pathname) {
-  return ACCOUNT_API.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))
+  return pathname === ACCOUNT_API || pathname.startsWith(`${ACCOUNT_API}/`)
 }
 
 async function proxyAccountApi(request, env) {
@@ -77,7 +78,13 @@ async function proxyAccountApi(request, env) {
   }
   const init = { method: request.method, headers, redirect: 'manual' }
   if (!['GET', 'HEAD'].includes(request.method)) init.body = request.body
-  const upstream = await fetch(`${origin}${url.pathname}${url.search}`, init)
+  const path = url.pathname.slice(ACCOUNT_API.length) || '/'
+  let upstream
+  try {
+    upstream = await fetch(`${origin}${path}${url.search}`, init)
+  } catch {
+    return Response.json({ error: 'The account service is unreachable. Try again shortly.' }, { status: 502 })
+  }
   const out = new Headers()
   upstream.headers.forEach((value, key) => {
     if (!DROP_RES.has(key.toLowerCase())) out.set(key, value)
@@ -92,7 +99,7 @@ export default {
       return proxyToUpstream(request, env)
     }
     if (isAccountApi(url.pathname)) return proxyAccountApi(request, env)
-    // Everything else: the static Vite build, via Workers assets (configured in wrangler.json).
+    // Everything else: the static Vite build, served by Pages (env.ASSETS).
     return env.ASSETS.fetch(request)
   },
 }

@@ -99,7 +99,7 @@ router.get('/google', (req, res) => {
 
 router.get('/google/callback', async (req, res) => {
   const { code } = req.query
-  if (!code) return res.redirect(`${SITE_URL}/sign-in?error=google_failed`)
+  if (!code) return res.redirect(`${SITE_URL}/signin?error=google_failed`)
 
   try {
     const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
@@ -134,7 +134,7 @@ router.get('/google/callback', async (req, res) => {
     res.redirect(`${SITE_URL}/auth/callback?token=${signToken(userId)}`)
   } catch (e) {
     console.error('google oauth failed', e)
-    res.redirect(`${SITE_URL}/sign-in?error=google_failed`)
+    res.redirect(`${SITE_URL}/signin?error=google_failed`)
   }
 })
 
