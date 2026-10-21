@@ -9,7 +9,7 @@ import { auth, api, configured, useSession, API_BASE } from './src/lib/api.js'
 import { Dialog, DialogContent, Tabs, TabsList, TabsTrigger, TooltipProvider } from './src/ui.jsx'
 
 const TOPUPS = [1000, 2500, 5000, 10000]
-const FONT = "'Sora', ui-sans-serif, system-ui, sans-serif"
+const FONT = "'Instrument Sans', ui-sans-serif, system-ui, sans-serif"
 
 /* ---------- formatting ---------- */
 
@@ -151,15 +151,15 @@ function SpendChart({ days }) {
       >
         <defs>
           <linearGradient id="dash-area" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor={C.blue} stopOpacity="0.32" />
-            <stop offset="1" stopColor={C.blue} stopOpacity="0" />
+            <stop offset="0" stopColor={C.accent} stopOpacity="0.32" />
+            <stop offset="1" stopColor={C.accent} stopOpacity="0" />
           </linearGradient>
         </defs>
         {[0.25, 0.5, 0.75].map((t) => (
           <line key={t} x1="0" x2={W} y1={H * t} y2={H * t} stroke="rgba(244,245,246,0.05)" strokeDasharray="3 6" vectorEffect="non-scaling-stroke" />
         ))}
         <motion.path d={area} fill="url(#dash-area)" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8, delay: 0.3 }} />
-        <motion.path d={line} fill="none" stroke={C.blue} strokeWidth="2" vectorEffect="non-scaling-stroke" strokeLinejoin="round"
+        <motion.path d={line} fill="none" stroke={C.accent} strokeWidth="2" vectorEffect="non-scaling-stroke" strokeLinejoin="round"
           initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }} />
         {hover != null ? (
           <line x1={pts[hover][0]} x2={pts[hover][0]} y1="0" y2={H} stroke="rgba(244,245,246,0.18)" vectorEffect="non-scaling-stroke" />
@@ -168,7 +168,7 @@ function SpendChart({ days }) {
       {/* end dot + hover dot (HTML so they stay round with preserveAspectRatio=none) */}
       {[hover ?? pts.length - 1].map((i) => (
         <span key={i} className="pointer-events-none absolute h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full"
-          style={{ left: `${(pts[i][0] / W) * 100}%`, top: `${(pts[i][1] / H) * 100}%`, background: C.blue, boxShadow: `0 0 0 4px rgba(96,165,250,0.18)` }} />
+          style={{ left: `${(pts[i][0] / W) * 100}%`, top: `${(pts[i][1] / H) * 100}%`, background: C.accent, boxShadow: `0 0 0 4px rgba(205,138,76,0.18)` }} />
       ))}
       {hover != null ? (
         <div className="pointer-events-none absolute top-1 z-10 -translate-x-1/2 whitespace-nowrap rounded-lg border px-2.5 py-1.5 text-xs"
@@ -497,7 +497,7 @@ export default function Dashboard() {
     <TooltipProvider delayDuration={150}>
       <div className="min-h-screen antialiased" style={{ background: C.bg, color: C.fg, fontFamily: FONT }}>
         <style>{STYLES}</style>
-        <div className="pointer-events-none fixed inset-x-0 top-0 h-[420px]" style={{ background: 'radial-gradient(60% 60% at 50% 0%, rgba(96,165,250,0.08), transparent 70%)' }} />
+        <div className="pointer-events-none fixed inset-x-0 top-0 h-[420px]" style={{ background: 'radial-gradient(60% 60% at 50% 0%, rgba(205,138,76,0.08), transparent 70%)' }} />
 
         {/* sidebar */}
         <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r px-3 py-5 lg:flex" style={{ borderColor: C.line, background: 'rgba(8,9,10,0.85)' }}>

@@ -2,33 +2,35 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import {
   Activity, ArrowRight, BarChart3, Check, ChevronRight, Copy, Gauge, KeyRound,
-  Layers, LayoutTemplate, Plus, RefreshCw, Sparkles, Tag, Zap,
+  Layers, LayoutTemplate, Plus, RefreshCw, Route, Sparkles, Tag, Zap,
 } from 'lucide-react'
-import { CATALOG, MODEL_COUNT, PROVIDER_COUNT } from './models.js'
+import { CATALOG, FAMILY_ORDER, MODEL_COUNT, PROVIDER_COUNT } from './models.js'
 import { API_BASE, useSession } from './src/lib/api.js'
-import { Accordion, AccordionItem, AccordionTrigger, AccordionContent, Tabs } from './src/ui.jsx'
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent, Tabs, Tip, TooltipProvider } from './src/ui.jsx'
 import { Tabs as TabsP } from '@animate-ui/react/primitives/radix-ui'
-import { motion } from 'motion/react'
+import { motion, useReducedMotion } from 'motion/react'
 import HeroScroll from './HeroScroll.jsx'
 import { ScrollIn, ScrollTitle, ScrollProgress, RisingFooterArt } from './src/scroll.jsx'
 
 export const cn = (...c) => c.filter(Boolean).join(' ')
 
 export const C = {
-  bg: '#08090a',
-  fg: '#f4f5f6',
-  dim: 'rgba(244,245,246,0.45)',
-  faint: 'rgba(244,245,246,0.32)',
-  line: 'rgba(244,245,246,0.07)',
-  line2: 'rgba(244,245,246,0.14)',
-  card: 'rgba(244,245,246,0.025)',
-  up: '#4ade80',
-  down: '#f87171',
-  blue: '#60a5fa',
+  bg: '#0a0908',
+  fg: '#f3efe7',
+  dim: 'rgba(243,239,231,0.5)',
+  faint: 'rgba(243,239,231,0.33)',
+  line: 'rgba(243,239,231,0.08)',
+  line2: 'rgba(243,239,231,0.16)',
+  card: 'rgba(243,239,231,0.028)',
+  up: '#8fbf86',
+  down: '#d08a6e',
+  accent: '#cd8a4c',
 }
 
+// A hex socket, not a crystal: the mark is a port, because lenar is one. Every
+// model's name routes into it elsewhere on the page.
 const MARK_VB = '0 0 100 100'
-const MARK_D = 'M50 6 L94 50 L50 94 L6 50 Z'
+const MARK_D = 'M50 4 L89.84 27 L89.84 73 L50 96 L10.16 73 L10.16 27 Z'
 
 const MODELS = MODEL_COUNT
 
@@ -265,6 +267,9 @@ export function MetalMark({ size = 250 }) {
             <g clipPath="url(#mm-clip)" style={{ opacity: tilt.on ? 0 : 1, transition: 'opacity 300ms' }}>
               <rect className="ssy-sheen" x={-w} y="0" width={w} height={h} fill="url(#mm-sheen)" />
             </g>
+            {/* the port: every model routes into this */}
+            <circle cx={w / 2} cy={h / 2} r={w * 0.185} fill="#0a0908" stroke="url(#mm-stroke)" strokeWidth={w / 60} />
+            <circle cx={w / 2} cy={h / 2} r={w * 0.07} fill="#cd8a4c" />
           </svg>
         </div>
       </div>
@@ -315,7 +320,7 @@ export function AsciiRidge({ flip = false, height = 420, opacity = 0.5 }) {
           const ch = ramp[Math.min(ramp.length - 1, Math.floor(v * ramp.length))]
           if (ch === ' ') continue
           ctx.globalAlpha = 0.15 + v * 0.85
-          ctx.fillStyle = '#dceaff'
+          ctx.fillStyle = '#e9d9c3'
           ctx.fillText(ch, gx * cell + cell / 2, gy * cell + cell / 2)
         }
       }
@@ -492,6 +497,95 @@ function SdkCode({ code }) {
   )
 }
 
+/* ---------- routing: how a request actually gets to a model ---------- */
+
+const ROUTE_STEPS = [
+  { n: '01', title: 'Send the request', body: 'Point your existing SDK at the lenar base URL and keep the request shaped exactly how it already is.' },
+  { n: '02', title: 'We pick the model', body: 'Your model name routes to whichever upstream is live and fastest right now. If one drops mid-request, we fail over without you noticing.' },
+  { n: '03', title: 'You pay per token', body: 'Spend is metered at the token, not estimated. See exactly what each call cost, cache hits included.' },
+]
+
+function RoutingDiagram() {
+  const reduce = useReducedMotion()
+  const W = 520, H = 272
+  const portX = 462, portY = 136
+  const rows = FAMILY_ORDER.length
+  const topPad = 16
+  const step = (H - topPad * 2) / (rows - 1)
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full overflow-visible" role="img" aria-label="Every model family routing through one lenar key">
+      <defs>
+        <radialGradient id="rd-port" cx="50%" cy="50%" r="50%">
+          <stop offset="0" stopColor={C.accent} stopOpacity="0.4" />
+          <stop offset="1" stopColor={C.accent} stopOpacity="0" />
+        </radialGradient>
+      </defs>
+      {FAMILY_ORDER.map((f, i) => {
+        const y = topPad + i * step
+        const d = `M150 ${y} C 290 ${y} 300 ${portY} ${portX - 24} ${portY}`
+        return (
+          <g key={f.id}>
+            <path d={d} fill="none" stroke={C.line2} strokeWidth="1.5" />
+            {!reduce && (
+              <motion.path
+                d={d} fill="none" stroke={C.accent} strokeWidth="1.5" strokeLinecap="round"
+                initial={{ pathLength: 0, opacity: 0 }}
+                whileInView={{ pathLength: 1, opacity: 0.9 }}
+                viewport={{ once: true, amount: 0.4 }}
+                transition={{ duration: 1, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] }}
+              />
+            )}
+            <rect x="2" y={y - 13} width="148" height="26" rx="8" fill={C.card} stroke={C.line2} />
+            <text x="16" y={y + 4} fontSize="11" fill={C.fg} fontFamily="'IBM Plex Mono', ui-monospace, monospace">{f.label.replace(' Models', '')}</text>
+            <circle cx="150" cy={y} r="2.5" fill={C.accent} />
+          </g>
+        )
+      })}
+      <TooltipProvider>
+        <Tip content="Live routing — fails over without a deploy">
+          <g style={{ cursor: 'pointer' }}>
+            <circle cx={portX} cy={portY} r="34" fill="url(#rd-port)" />
+            <circle cx={portX} cy={portY} r="23" fill={C.bg} stroke={C.line2} strokeWidth="1.5" />
+            <circle cx={portX} cy={portY} r="7" fill={C.accent} />
+          </g>
+        </Tip>
+      </TooltipProvider>
+      <text x={portX} y={portY + 48} textAnchor="middle" fontSize="11.5" fill={C.dim} fontFamily="'IBM Plex Mono', ui-monospace, monospace">one key</text>
+    </svg>
+  )
+}
+
+function RoutingShowcase() {
+  return (
+    <section className={cn(SHELL, AIR)}>
+      <div className="text-center">
+        <SectionIcon icon={Route} />
+        <ScrollTitle lead="How it reaches" claim="a model" />
+      </div>
+      <div className="mt-16 grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
+        <ScrollIn className="order-2 lg:order-1">
+          <ol className="space-y-8">
+            {ROUTE_STEPS.map((s) => (
+              <li key={s.n} className="flex gap-5">
+                <span className="shrink-0 font-mono text-sm" style={{ color: C.accent, paddingTop: 2 }}>{s.n}</span>
+                <div>
+                  <h3 className="font-medium" style={{ fontSize: 15.5, color: C.fg }}>{s.title}</h3>
+                  <p className="mt-1.5 text-sm leading-relaxed" style={{ color: C.dim, maxWidth: 46 + 'ch' }}>{s.body}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </ScrollIn>
+        <ScrollIn i={1} tilt className="order-1 lg:order-2">
+          <GlassFrame className="p-4 sm:p-5">
+            <RoutingDiagram />
+          </GlassFrame>
+        </ScrollIn>
+      </div>
+    </section>
+  )
+}
+
 function SdkSwitcher() {
   return (
     <section id="models" className={cn(SHELL, AIR, 'text-center')}>
@@ -611,7 +705,7 @@ export const Mini = ({ label, value, delta, up = true }) => (
 
 const SERIES = [42, 44, 43, 47, 46, 51, 49, 53, 57, 55, 58, 62, 60, 64, 67, 65, 69, 72, 70, 74]
 
-function LineChart({ data = SERIES, color = C.blue }) {
+function LineChart({ data = SERIES, color = C.accent }) {
   const w = 600
   const h = 160
   const min = Math.min(...data) - 4
@@ -657,8 +751,8 @@ export function UsageScreen() {
 
 function BreakdownScreen() {
   const rows = [
-    ['gpt-6-astra', 45, '#60a5fa'],
-    ['claude-opus-5', 30, '#a78bfa'],
+    ['gpt-6-astra', 45, '#cd8a4c'],
+    ['claude-opus-5', 30, '#8a8fd0'],
     ['claude-fable-5', 17, '#fbbf24'],
     ['Other', 8, 'rgba(244,245,246,0.4)'],
   ]
@@ -912,13 +1006,14 @@ export default function SimpleLanding({ screens = SCREENS, models = MODELS }) {
   return (
     <div
       className="min-h-screen antialiased"
-      style={{ background: C.bg, color: C.fg, fontFamily: "'Sora', ui-sans-serif, system-ui, sans-serif" }}
+      style={{ background: C.bg, color: C.fg, fontFamily: "'Instrument Sans', ui-sans-serif, system-ui, sans-serif" }}
     >
       <style>{STYLES}</style>
       <Nav />
       <ScrollProgress />
       <main>
         <HeroScroll count={models} />
+        <RoutingShowcase />
         <SdkSwitcher />
         <Features />
         <Numbers models={models} uptime={99} requests={12} providers={PROVIDER_COUNT} />

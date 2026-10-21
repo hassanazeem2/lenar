@@ -63,7 +63,7 @@ function Terminal() {
         <div className="space-y-3 px-5 py-5 font-mono text-[13px] leading-relaxed">
           <div key={s.model} className="ssy-fade flex items-center gap-2">
             <span style={{ color: C.faint }}>model</span>
-            <span className="rounded px-1.5 py-0.5" style={{ background: 'rgba(96,165,250,0.12)', color: C.blue }}>{s.model}</span>
+            <span className="rounded px-1.5 py-0.5" style={{ background: 'rgba(205,138,76,0.12)', color: C.accent }}>{s.model}</span>
           </div>
           <div>
             <span style={{ color: C.faint }}>user › </span>
@@ -96,7 +96,7 @@ function Terminal() {
 function Showcase() {
   return (
     <div className="relative hidden overflow-hidden border-r lg:flex lg:flex-col" style={{ borderColor: C.line }}>
-      <div className="au-orb pointer-events-none absolute -left-24 top-1/4 h-96 w-96 rounded-full blur-3xl" style={{ background: 'radial-gradient(circle, rgba(96,165,250,0.18), transparent 65%)' }} />
+      <div className="au-orb pointer-events-none absolute -left-24 top-1/4 h-96 w-96 rounded-full blur-3xl" style={{ background: 'radial-gradient(circle, rgba(205,138,76,0.18), transparent 65%)' }} />
       <div className="au-orb pointer-events-none absolute -bottom-24 right-0 h-80 w-80 rounded-full blur-3xl" style={{ background: 'radial-gradient(circle, rgba(74,222,128,0.1), transparent 65%)', animationDelay: '-9s' }} />
       <div className="pointer-events-none absolute inset-x-0 bottom-0"><AsciiRidge height={340} opacity={0.35} /></div>
 
@@ -264,7 +264,7 @@ export default function AuthScreen({ mode = 'signup' }) {
     : isSignup ? 'Get an API key and start calling any model in minutes.' : 'Sign in to manage your keys and credits.'
 
   return (
-    <div className="grid min-h-screen antialiased lg:grid-cols-[1.1fr_1fr]" style={{ background: C.bg, color: C.fg, fontFamily: "'Sora', ui-sans-serif, system-ui, sans-serif" }}>
+    <div className="grid min-h-screen antialiased lg:grid-cols-[1.1fr_1fr]" style={{ background: C.bg, color: C.fg, fontFamily: "'Instrument Sans', ui-sans-serif, system-ui, sans-serif" }}>
       <style>{STYLES + AUTH_STYLES}</style>
       <Showcase />
 

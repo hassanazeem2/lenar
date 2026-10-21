@@ -2,7 +2,7 @@ import { C, STYLES, Nav, PrimaryButton } from './SimpleLanding.jsx'
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen antialiased" style={{ background: C.bg, color: C.fg, fontFamily: "'Sora', ui-sans-serif, system-ui, sans-serif" }}>
+    <div className="min-h-screen antialiased" style={{ background: C.bg, color: C.fg, fontFamily: "'Instrument Sans', ui-sans-serif, system-ui, sans-serif" }}>
       <style>{STYLES}</style>
       <Nav />
       <main className="ssy-rise flex flex-col items-center px-6 py-40 text-center">

@@ -83,7 +83,7 @@ export default function PricingPage() {
   return (
     <div
       className="min-h-screen antialiased"
-      style={{ background: C.bg, color: C.fg, fontFamily: "'Sora', ui-sans-serif, system-ui, sans-serif" }}
+      style={{ background: C.bg, color: C.fg, fontFamily: "'Instrument Sans', ui-sans-serif, system-ui, sans-serif" }}
     >
       <style>{STYLES}</style>
       <Nav />

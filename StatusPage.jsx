@@ -84,7 +84,7 @@ export default function StatusPage() {
 
   return (
     <TooltipProvider delayDuration={150}>
-      <div className="min-h-screen antialiased" style={{ background: C.bg, color: C.fg, fontFamily: "'Sora', ui-sans-serif, system-ui, sans-serif" }}>
+      <div className="min-h-screen antialiased" style={{ background: C.bg, color: C.fg, fontFamily: "'Instrument Sans', ui-sans-serif, system-ui, sans-serif" }}>
         <style>{STYLES + '@keyframes st-fill{from{transform:scaleX(0)}to{transform:none}}.st-fill{transform-origin:left;animation:st-fill 1s cubic-bezier(0.16,1,0.3,1) both}@media (prefers-reduced-motion: reduce){.st-fill{animation:none}}'}</style>
         <Nav />
         <main className={cn(SHELL, 'max-w-4xl py-14')}>

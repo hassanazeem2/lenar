@@ -52,7 +52,7 @@ export function AccordionTrigger({ children, className, ...props }) {
         className={cn('group flex w-full items-center justify-between gap-6 py-5 text-left outline-none focus-visible:text-white', className)}
         {...props}
       >
-        <span style={{ fontSize: 15, color: 'rgba(244,245,246,0.85)' }}>{children}</span>
+        <span style={{ fontSize: 15, color: C.fg }}>{children}</span>
         <Plus size={16} className="shrink-0 transition-transform duration-300 group-data-[state=open]:rotate-45" style={{ color: C.faint }} />
       </AccordionP.Trigger>
     </AccordionP.Header>
@@ -79,7 +79,7 @@ export function Tip({ content, children }) {
         <TooltipP.Content
           sideOffset={6}
           className="z-50 rounded-lg border px-2.5 py-1.5 text-xs shadow-xl"
-          style={{ borderColor: C.line2, background: '#111214', color: C.fg }}
+          style={{ borderColor: C.line2, background: '#17140f', color: C.fg }}
         >
           {content}
         </TooltipP.Content>
@@ -100,7 +100,7 @@ export function DialogContent({ title, description, children, className }) {
       <DialogP.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" />
       <DialogP.Content
         className={cn('fixed left-1/2 top-1/2 z-50 w-[calc(100%-32px)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border p-6 outline-none', className)}
-        style={{ borderColor: C.line2, background: '#0e0f11', color: C.fg }}
+        style={{ borderColor: C.line2, background: '#141210', color: C.fg }}
       >
         <DialogP.Title className="text-lg font-medium" style={{ letterSpacing: '-0.01em' }}>{title}</DialogP.Title>
         {description ? <DialogP.Description className="mt-1.5 text-sm" style={{ color: C.dim }}>{description}</DialogP.Description> : null}

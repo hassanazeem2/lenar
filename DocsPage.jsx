@@ -51,7 +51,7 @@ function Endpoint({ method, path }) {
 
 function Callout({ warn, children }) {
   const Icon = warn ? AlertTriangle : Info
-  const color = warn ? '#fbbf24' : C.blue
+  const color = warn ? '#fbbf24' : C.accent
   return (
     <div className="my-5 flex gap-3 rounded-xl border px-4 py-3 text-sm leading-relaxed" style={{ borderColor: `${color}33`, background: `${color}0d`, color: 'rgba(244,245,246,0.8)' }}>
       <Icon size={16} className="mt-0.5 shrink-0" style={{ color }} />
@@ -370,7 +370,7 @@ export default function DocsPage() {
   }, [])
 
   return (
-    <div className="min-h-screen antialiased" style={{ background: C.bg, color: C.fg, fontFamily: "'Sora', ui-sans-serif, system-ui, sans-serif" }}>
+    <div className="min-h-screen antialiased" style={{ background: C.bg, color: C.fg, fontFamily: "'Instrument Sans', ui-sans-serif, system-ui, sans-serif" }}>
       <style>{STYLES}</style>
       <Nav />
       <div className={cn(SHELL, 'flex gap-12 py-12')}>

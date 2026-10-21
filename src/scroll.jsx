@@ -79,7 +79,7 @@ export function ScrollProgress() {
     <motion.div
       aria-hidden
       className="pointer-events-none fixed inset-x-0 top-16 z-50 h-px origin-left"
-      style={{ scaleX, background: 'linear-gradient(90deg, rgba(96,165,250,0), rgba(96,165,250,0.9), rgba(244,245,246,0.9))' }}
+      style={{ scaleX, background: 'linear-gradient(90deg, rgba(205,138,76,0), rgba(205,138,76,0.9), rgba(244,245,246,0.9))' }}
     />
   )
 }

@@ -31,7 +31,7 @@ export default function ResetPassword() {
   }
 
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center px-6 antialiased" style={{ background: C.bg, color: C.fg, fontFamily: "'Sora', ui-sans-serif, system-ui, sans-serif" }}>
+    <div className="relative flex min-h-screen flex-col items-center justify-center px-6 antialiased" style={{ background: C.bg, color: C.fg, fontFamily: "'Instrument Sans', ui-sans-serif, system-ui, sans-serif" }}>
       <style>{STYLES}</style>
       <div className="pointer-events-none absolute inset-x-0 top-0"><AsciiRidge flip height={380} opacity={0.14} /></div>
       <div className="ssy-rise relative w-full max-w-sm">

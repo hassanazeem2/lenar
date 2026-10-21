@@ -73,7 +73,7 @@ function AsciiTerrain({ flood, className }) {
           const ch = RAMP[Math.min(RAMP.length - 1, Math.floor(v * RAMP.length))]
           if (ch === ' ') continue
           ctx.globalAlpha = 0.12 + v * 0.8
-          ctx.fillStyle = d2 < 22000 ? '#ffffff' : '#dceaff'
+          ctx.fillStyle = d2 < 22000 ? '#fff8ee' : '#e9d9c3'
           ctx.fillText(ch, gx * CELL + CELL / 2, gy * CELL + CELL / 2)
         }
       }
@@ -196,7 +196,7 @@ function PriceRow({ m, p, i }) {
         </div>
         <div className="flex items-center gap-3">
           <div className="h-2 flex-1">
-            <motion.div className="h-full origin-left rounded-full" style={{ scaleX: ours, background: `linear-gradient(90deg, ${C.blue}, #93c5fd)`, boxShadow: '0 0 16px rgba(96,165,250,0.45)' }} />
+            <motion.div className="h-full origin-left rounded-full" style={{ scaleX: ours, background: `linear-gradient(90deg, ${C.accent}, #e8bd87)`, boxShadow: '0 0 16px rgba(205,138,76,0.45)' }} />
           </div>
           <span className="w-16 text-right font-mono text-xs" style={{ color: C.fg }}>{usd(m.rates.input)}</span>
         </div>
@@ -218,7 +218,7 @@ function PriceCompare({ p }) {
         <span className="ml-3 truncate text-xs" style={{ color: C.faint }}>Pricing · input, $ per million tokens</span>
         <span className="ml-auto flex items-center gap-4 text-[11px]" style={{ color: C.faint }}>
           <span className="flex items-center gap-1.5"><span className="h-1.5 w-3 rounded-full" style={{ background: 'rgba(244,245,246,0.25)' }} />Official</span>
-          <span className="flex items-center gap-1.5"><span className="h-1.5 w-3 rounded-full" style={{ background: C.blue }} />lenar</span>
+          <span className="flex items-center gap-1.5"><span className="h-1.5 w-3 rounded-full" style={{ background: C.accent }} />lenar</span>
         </span>
       </div>
       <div className="divide-y divide-white/[0.06] px-5 py-2 sm:px-6">
@@ -324,7 +324,7 @@ export default function HeroScroll({ count }) {
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-4 pt-16" style={{ perspective: 1400 }}>
           <motion.div
             className="w-full overflow-hidden"
-            style={{ maxWidth: shrink < 1 ? SHOT_W * shrink : '48rem', scale: shotScale, opacity: shotOpacity, rotateX: shotRotateX, y: shotY, borderRadius: shotRadius, transformOrigin: '50% 40%', boxShadow: '0 60px 140px -40px rgba(96,165,250,0.25)' }}
+            style={{ maxWidth: shrink < 1 ? SHOT_W * shrink : '48rem', scale: shotScale, opacity: shotOpacity, rotateX: shotRotateX, y: shotY, borderRadius: shotRadius, transformOrigin: '50% 40%', boxShadow: '0 60px 140px -40px rgba(205,138,76,0.25)' }}
           >
             {shrink < 1 ? (
               <div style={{ width: SHOT_W, zoom: shrink }}>

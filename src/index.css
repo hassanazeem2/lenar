@@ -3,6 +3,10 @@
   themes: false;
 }
 
+@theme {
+  --font-mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+}
+
 /* daisyUI theme built from the lenar palette in SimpleLanding.jsx (C). */
 @plugin "daisyui/theme" {
   name: "lenar";
