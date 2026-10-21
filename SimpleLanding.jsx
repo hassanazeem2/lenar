@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import {
   Activity, ArrowRight, BarChart3, Check, ChevronRight, Copy, Gauge, KeyRound,
-  Layers, LayoutTemplate, Plus, RefreshCw, Route, Sparkles, Tag, Zap,
+  Layers, LayoutTemplate, Plus, RefreshCw, Route, ShieldCheck, Sparkles, Tag, Zap,
 } from 'lucide-react'
 import { CATALOG, FAMILY_ORDER, MODEL_COUNT, PROVIDER_COUNT } from './models.js'
 import { API_BASE, useSession } from './src/lib/api.js'
@@ -90,6 +90,7 @@ const FEATURES = [
   { icon: RefreshCw, title: 'Automatic failover', body: 'A dead upstream doesn\'t take you down. We route around outages without a deploy.' },
   { icon: Activity, title: 'Live model status', body: 'Uptime and latency per model, not a promise. Watch health before your users feel it.' },
   { icon: Gauge, title: 'Your own pricing', body: 'Set markup per model, white-label the name, and bill your customers on your terms.' },
+  { icon: ShieldCheck, title: 'Nothing retained', body: 'Requests pass straight through to the model and back. No prompt or response logging in between.' },
 ]
 
 const FAQ = [
@@ -625,7 +626,91 @@ function SdkSwitcher() {
             ))}
           </GlassFrame>
         </ScrollIn>
+        <ScrollIn i={2}>
+          <p className="mx-auto mt-6 max-w-md text-sm" style={{ color: C.faint }}>
+            Already on OpenRouter or calling providers directly? Switching is two lines — your <code className="rounded px-1 py-0.5" style={{ background: C.card, color: C.dim }}>base_url</code> and your key. The request shape doesn't change.
+          </p>
+        </ScrollIn>
       </Tabs>
+    </section>
+  )
+}
+
+/* ---------- what you'd save ---------- */
+
+const CALC_PRESETS = [250, 1000, 5000, 20000]
+const AVG_DISCOUNT = Math.round(CATALOG.reduce((s, m) => s + m.discount, 0) / CATALOG.length)
+const money0 = (v) => `$${Math.round(v).toLocaleString('en-US')}`
+
+function SavingsCalculator() {
+  const [spend, setSpend] = useState(1000)
+  const saved = Math.max(0, spend * (AVG_DISCOUNT / 100))
+  const after = spend - saved
+
+  return (
+    <section className={cn(SHELL, AIR)}>
+      <div className="text-center">
+        <SectionIcon icon={Tag} />
+        <ScrollTitle lead="What you'd" claim="save" />
+      </div>
+      <ScrollIn>
+        <div className="mx-auto mt-14 max-w-xl rounded-2xl border p-7 sm:p-9" style={{ borderColor: C.line, background: C.card }}>
+          <label htmlFor="calc-spend" className="text-xs uppercase tracking-wide" style={{ color: C.faint, letterSpacing: '0.08em' }}>
+            Your monthly model spend today
+          </label>
+          <div className="mt-3 flex items-baseline gap-2">
+            <span className="text-2xl" style={{ color: C.faint }}>$</span>
+            <input
+              id="calc-spend"
+              type="number"
+              min={0}
+              max={200000}
+              value={spend}
+              onChange={(e) => setSpend(Math.max(0, Math.min(200000, Number(e.target.value) || 0)))}
+              className="w-full bg-transparent font-mono outline-none"
+              style={{ fontSize: 'clamp(28px, 5vw, 40px)', color: C.fg, fontVariantNumeric: 'tabular-nums' }}
+            />
+          </div>
+          <input
+            type="range"
+            min={50}
+            max={20000}
+            step={50}
+            value={Math.min(spend, 20000)}
+            onChange={(e) => setSpend(Number(e.target.value))}
+            className="calc-range mt-5 w-full"
+            aria-label="Monthly spend slider"
+            style={{ accentColor: C.accent }}
+          />
+          <div className="mt-2 flex justify-between">
+            {CALC_PRESETS.map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => setSpend(p)}
+                className="rounded-md px-2 py-1 text-xs transition-colors hover:text-white"
+                style={{ color: spend === p ? C.fg : C.faint, background: spend === p ? C.card : 'transparent' }}
+              >
+                {money0(p)}/mo
+              </button>
+            ))}
+          </div>
+
+          <div className="mt-8 grid grid-cols-2 gap-4 border-t pt-6" style={{ borderColor: C.line }}>
+            <div>
+              <p className="text-xs" style={{ color: C.faint }}>With lenar</p>
+              <p className="mt-1 font-medium" style={{ fontSize: 26, color: C.fg, fontVariantNumeric: 'tabular-nums' }}>{money0(after)}</p>
+            </div>
+            <div>
+              <p className="text-xs" style={{ color: C.faint }}>Back in your pocket</p>
+              <p className="mt-1 font-medium" style={{ fontSize: 26, color: C.up, fontVariantNumeric: 'tabular-nums' }}>{money0(saved)}</p>
+            </div>
+          </div>
+          <p className="mt-5 text-xs leading-relaxed" style={{ color: C.faint }}>
+            Based on today's average discount across all {CATALOG.length} models ({AVG_DISCOUNT}% below official pricing). Your exact savings depend on which models you call — see <Link to="/pricing" className="underline hover:text-white" style={{ color: C.dim }}>full pricing</Link>.
+          </p>
+        </div>
+      </ScrollIn>
     </section>
   )
 }
@@ -997,6 +1082,10 @@ export const STYLES = `
 .ssy-fade { animation: ssy-fade 400ms ease-out both }
 .ssy-in-right { animation: ssy-in-right 450ms cubic-bezier(0.22,1,0.36,1) both }
 .ssy-in-left { animation: ssy-in-left 450ms cubic-bezier(0.22,1,0.36,1) both }
+.calc-range { -webkit-appearance: none; appearance: none; height: 4px; border-radius: 999px; background: rgba(243,239,231,0.14); cursor: pointer }
+.calc-range::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 16px; height: 16px; border-radius: 999px; background: #cd8a4c; box-shadow: 0 0 0 4px rgba(205,138,76,0.18); transition: box-shadow 150ms }
+.calc-range::-webkit-slider-thumb:hover { box-shadow: 0 0 0 6px rgba(205,138,76,0.22) }
+.calc-range::-moz-range-thumb { width: 16px; height: 16px; border: none; border-radius: 999px; background: #cd8a4c; box-shadow: 0 0 0 4px rgba(205,138,76,0.18) }
 @media (prefers-reduced-motion: reduce) {
   .ssy-rise, .ssy-sway, .ssy-sheen, .ssy-float, .ssy-fade, .ssy-in-right, .ssy-in-left { animation: none }
 }
@@ -1015,6 +1104,7 @@ export default function SimpleLanding({ screens = SCREENS, models = MODELS }) {
         <HeroScroll count={models} />
         <RoutingShowcase />
         <SdkSwitcher />
+        <SavingsCalculator />
         <Features />
         <Numbers models={models} uptime={99} requests={12} providers={PROVIDER_COUNT} />
         <Dashboards screens={screens} />
