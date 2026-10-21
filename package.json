@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && cp worker/src/index.js dist/_worker.js",
     "preview": "vite preview",
-    "deploy": "vite build && wrangler deploy"
+    "pages:deploy": "npm run build && wrangler pages deploy dist --project-name=lenar"
   },
   "dependencies": {
     "@animate-ui/react": "^2.0.0",

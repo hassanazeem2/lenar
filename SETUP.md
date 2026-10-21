@@ -4,7 +4,7 @@ This gets the site live with working sign-in, payments and API keys.
 
 **How it fits together**
 
-- **Cloudflare Workers** hosts the website (`dist/`, the Vite build) and the `/v1` API proxy, which forwards your customers' requests to 7api. Both are served by one Worker (`worker/src/index.js`).
+- **Cloudflare Pages** hosts the website (`dist/`, the Vite build) and the `/v1` API proxy, which forwards your customers' requests to 7api. Both are served by one `_worker.js` ("advanced mode"), built automatically from `worker/src/index.js` by `npm run build`.
 - **Railway** runs the backend: a Node/Express server (`server/`) plus a Postgres database, handling sign-in, payments and keys.
 - **Stripe** takes payments. When a customer pays, the webhook creates their 7api subkey funded with the credit, or tops up the one they already have.
 - **7api** runs the models. Each customer gets one subkey, funded from your 7api main balance.
@@ -44,21 +44,32 @@ This gets the site live with working sign-in, payments and API keys.
 2. Authorized redirect URI: `https://YOUR_RAILWAY_API_URL/auth/google/callback`
 3. Put the client ID and secret into `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` on Railway. Leave them blank to disable the "Continue with Google" button (the backend just won't redirect anywhere useful).
 
-## 4. Cloudflare — frontend + /v1 proxy
+## 4. Cloudflare Pages — frontend + /v1 proxy
 
-1. `wrangler.json` at the repo root is already set up: static assets from `dist/`, SPA fallback, and the Worker script at `worker/src/index.js` handling `/v1/*`.
-2. Add these as **secrets** on the Worker (Cloudflare dashboard → your Worker → Settings → Variables, or `wrangler secret put`): nothing needed here beyond what's already in `wrangler.json`'s `vars` — `UPSTREAM_BASE_URL` and `CREDIT_MARKUP` are plain vars there, not secrets, since neither is sensitive.
-3. Set these as **plain environment variables at build time** (`.env` locally, or in your CI/deploy step — Vite bakes `VITE_` vars in at build time, so they must be present when `npm run build` runs):
+`npm run build` runs `vite build` and then copies `worker/src/index.js` to `dist/_worker.js`. That file is Pages' ["advanced mode"](https://developers.cloudflare.com/pages/functions/advanced-mode/): Pages serves everything in `dist/` as static assets, except `_worker.js` runs as a real Worker in front of them, which is how `/v1/*` gets proxied to 7api while everything else falls through to the static site.
+
+1. In the Cloudflare dashboard: **Workers & Pages → Create → Pages → Connect to Git**, pick `hassanazeem2/lenar`.
+2. Build settings:
+   - **Framework preset:** None (or Vite)
+   - **Build command:** `npm run build`
+   - **Build output directory:** `dist`
+   - Leave **Root directory** as `/` (the repo root — `package.json` lives there).
+3. Add these as **environment variables** on the Pages project (Settings → Environment variables), for both Production and Preview:
 
    | Name | Value |
    |---|---|
    | `VITE_API_URL` | your Railway backend's public URL, e.g. `https://lenar-server-production.up.railway.app` |
    | `VITE_API_BASE_URL` | `https://YOUR_DOMAIN/v1` (your Cloudflare domain + `/v1`) |
    | `VITE_CREDIT_MARKUP` | same as `CREDIT_MARKUP` on Railway |
+   | `UPSTREAM_BASE_URL` | `https://7api.st/v1` |
+   | `CREDIT_MARKUP` | same value, e.g. `1.25` (used by `_worker.js` at request time, not just at build time) |
 
-4. Deploy: `npm run deploy` (runs `vite build && wrangler deploy`). The first time, `wrangler login` to authenticate.
-5. **Domain:** add your custom domain to the Worker under **Settings → Domains & Routes**. The Worker answers both the site and `/v1/*` on it.
-6. Redeploy after changing any `VITE_` variable — they're baked in at build time, not read at runtime.
+   The `VITE_` ones are baked in at build time; `UPSTREAM_BASE_URL` and `CREDIT_MARKUP` are read by `_worker.js` at runtime, so both need to be set here even though they overlap with the build-time ones.
+4. Click **Save and Deploy**. Pages builds and deploys automatically on every push to `main` after this.
+5. **Domain:** add your custom domain under the Pages project's **Custom domains** tab. It answers both the site and `/v1/*`.
+6. Redeploy after changing any `VITE_` variable (trigger a new deployment from the dashboard, or push a commit) — they're baked in at build time, not read at runtime.
+
+If you'd rather deploy from your own machine instead of connecting Git, `npm run pages:deploy` does the same build and runs `wrangler pages deploy dist --project-name=lenar` (first time, run `wrangler login`).
 
 ## 5. Test it end to end
 
