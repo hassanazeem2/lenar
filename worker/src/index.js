@@ -59,12 +59,39 @@ async function proxyToUpstream(request, env) {
   return new Response(upstream.body, { status: upstream.status, statusText: upstream.statusText, headers: out })
 }
 
+// Browser calls for accounts stay on this domain. The worker forwards them to Railway,
+// so lenar.cc does not have to be added to the backend's CORS list.
+const ACCOUNT_API = ['/auth', '/account', '/roll-key', '/reveal-key', '/create-checkout', '/status']
+
+function isAccountApi(pathname) {
+  return ACCOUNT_API.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))
+}
+
+async function proxyAccountApi(request, env) {
+  const url = new URL(request.url)
+  const origin = (env.VITE_API_URL || 'https://lenar-production.up.railway.app').replace(/\/$/, '')
+  const headers = new Headers()
+  for (const name of ['authorization', 'content-type', 'accept']) {
+    const value = request.headers.get(name)
+    if (value) headers.set(name, value)
+  }
+  const init = { method: request.method, headers, redirect: 'manual' }
+  if (!['GET', 'HEAD'].includes(request.method)) init.body = request.body
+  const upstream = await fetch(`${origin}${url.pathname}${url.search}`, init)
+  const out = new Headers()
+  upstream.headers.forEach((value, key) => {
+    if (!DROP_RES.has(key.toLowerCase())) out.set(key, value)
+  })
+  return new Response(upstream.body, { status: upstream.status, statusText: upstream.statusText, headers: out })
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url)
     if (url.pathname === '/v1' || url.pathname.startsWith('/v1/')) {
       return proxyToUpstream(request, env)
     }
+    if (isAccountApi(url.pathname)) return proxyAccountApi(request, env)
     // Everything else: the static Vite build, via Workers assets (configured in wrangler.json).
     return env.ASSETS.fetch(request)
   },
