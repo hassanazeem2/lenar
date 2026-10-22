@@ -15,10 +15,22 @@ function scaleUsd(value, markup) {
   return value
 }
 
+// Customers see lenar, not the upstream. These rewrite its name out of the JSON we pass back.
+// Only lists, account figures and errors are rewritten; model output (chat, completions,
+// streams) is passed through untouched so a reply that mentions the name stays as written.
+const BRANDED_PATHS = /^\/(models|status|balance|usage)(\/|$)/
+
+function brand(value) {
+  if (typeof value === 'string') return value.replace(/7api\.st/gi, 'lenar.cc').replace(/7api/gi, 'lenar')
+  if (Array.isArray(value)) return value.map(brand)
+  if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, brand(v)]))
+  return value
+}
+
 // Request headers worth passing on. Everything else (cookies, host) is dropped.
 const PASS_REQ = ['authorization', 'x-api-key', 'content-type', 'accept', 'anthropic-version', 'anthropic-beta', 'openai-organization', 'openai-beta', 'user-agent']
 // Response headers we don't forward: the body is re-encoded by the platform.
-const DROP_RES = new Set(['content-encoding', 'content-length', 'transfer-encoding', 'connection', 'set-cookie'])
+const DROP_RES = new Set(['content-encoding', 'content-length', 'transfer-encoding', 'connection', 'set-cookie', 'via', 'server', 'etag'])
 
 async function proxyToUpstream(request, env) {
   const url = new URL(request.url)
@@ -52,9 +64,26 @@ async function proxyToUpstream(request, env) {
   const out = new Headers()
   upstream.headers.forEach((v, k) => { if (!DROP_RES.has(k.toLowerCase())) out.set(k, v) })
 
-  if (markup !== 1 && SCALED_PATHS.has(path) && upstream.ok && (upstream.headers.get('content-type') || '').includes('json')) {
-    const data = scaleUsd(await upstream.json(), markup)
-    return Response.json(data, { status: upstream.status, headers: out })
+  const type = upstream.headers.get('content-type') || ''
+
+  // An HTML page from upstream is its firewall or an outage page, which names the upstream.
+  // Hand the customer a plain JSON error in the usual shape instead.
+  if (type.includes('text/html')) {
+    const blocked = upstream.status === 403
+    return Response.json({
+      error: {
+        type: blocked ? 'request_rejected' : 'upstream_error',
+        message: blocked ? 'The request was rejected. Check that the body is valid JSON for this endpoint.' : 'The model service returned an error. Retry shortly.',
+      },
+    }, { status: upstream.status >= 400 ? upstream.status : 502 })
+  }
+
+  const isJson = type.includes('json') && !type.includes('event-stream')
+  if (isJson && (BRANDED_PATHS.test(path) || !upstream.ok)) {
+    let data = await upstream.json().catch(() => null)
+    if (data == null) return Response.json({ error: { type: 'upstream_error', message: 'The model service returned an unreadable response.' } }, { status: 502 })
+    if (markup !== 1 && SCALED_PATHS.has(path) && upstream.ok) data = scaleUsd(data, markup)
+    return Response.json(brand(data), { status: upstream.status, headers: out })
   }
   return new Response(upstream.body, { status: upstream.status, statusText: upstream.statusText, headers: out })
 }
