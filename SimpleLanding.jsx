@@ -27,7 +27,7 @@ export const C = {
 export const MARK_VB = '0 0 100 100'
 export const MARK_D = 'M50 4 L89.84 27 L89.84 73 L50 96 L10.16 73 L10.16 27 Z'
 
-export const SHELL = 'mx-auto w-full max-w-6xl px-6 sm:px-10'
+export const SHELL = 'mx-auto w-full max-w-6xl px-5 sm:px-10'
 export const AIR = 'py-28 sm:py-36'
 const EASE = 'cubic-bezier(0.22,1,0.36,1)'
 
@@ -396,7 +396,7 @@ export function Nav({ wide = false }) {
   const pill = hover ?? current
   return (
     <header className="sticky top-0 z-50 backdrop-blur-xl" style={{ boxShadow: wide ? 'none' : `inset 0 -1px 0 ${C.line}`, background: 'rgba(10,9,8,0.82)' }}>
-      <div className={cn(wide ? 'mx-auto w-full max-w-[1480px] px-4 sm:px-5' : SHELL, 'flex h-16 items-center gap-8')}>
+      <div className={cn(wide ? 'mx-auto w-full max-w-[1480px] px-4 sm:px-5' : SHELL, 'flex h-16 items-center gap-4 sm:gap-8')}>
         <Link to="/" className="shrink-0"><Wordmark /></Link>
         <nav className="ml-auto hidden items-center gap-1 md:flex" onMouseLeave={() => setHover(null)}>
           {NAV.map((n) => (
@@ -419,12 +419,12 @@ export function Nav({ wide = false }) {
             </Link>
           ))}
         </nav>
-        <div className="ml-auto flex items-center gap-4 md:ml-0">
+        <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-4 md:ml-0">
           {session ? (
             <PrimaryButton small to="/dashboard">Dashboard <ArrowRight size={14} strokeWidth={2.5} /></PrimaryButton>
           ) : (
             <>
-              <TextLink to="/signin" chevron={false}>Sign in</TextLink>
+              <span className="inline-flex whitespace-nowrap py-2"><TextLink to="/signin" chevron={false}>Sign in</TextLink></span>
               <PrimaryButton small to="/signup">Create account <ArrowRight size={14} strokeWidth={2.5} /></PrimaryButton>
             </>
           )}
@@ -495,10 +495,10 @@ export function Footer() {
           {cols.map(([title, links]) => (
             <div key={title} className="lg:col-span-2">
               <p className="text-[15px]" style={{ color: C.dim }}>{title}</p>
-              <ul className="mt-4 space-y-2.5">
+              <ul className="mt-3 space-y-0.5">
                 {links.map((l) => (
                   <li key={l.label}>
-                    <Link to={l.to} className="text-[15px] transition-colors hover:text-[#cd8a4c]" style={{ color: C.fg }}>{l.label}</Link>
+                    <Link to={l.to} className="inline-block py-1.5 text-[15px] transition-colors hover:text-[#cd8a4c]" style={{ color: C.fg }}>{l.label}</Link>
                   </li>
                 ))}
               </ul>
@@ -537,7 +537,7 @@ export const STYLES = `
 .calc-range::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 16px; height: 16px; border-radius: 999px; background: #cd8a4c; box-shadow: 0 0 0 4px rgba(205,138,76,0.18); transition: box-shadow 150ms }
 .calc-range::-webkit-slider-thumb:hover { box-shadow: 0 0 0 6px rgba(205,138,76,0.22) }
 .calc-range::-moz-range-thumb { width: 16px; height: 16px; border: none; border-radius: 999px; background: #cd8a4c; box-shadow: 0 0 0 4px rgba(205,138,76,0.18) }
-.lb-roll { position: relative; display: inline-grid; overflow: hidden; line-height: 1.3 }
+.lb-roll { position: relative; display: inline-grid; overflow: hidden; line-height: 1.3; white-space: nowrap }
 .lb-roll > span { grid-area: 1 / 1; display: inline-flex; align-items: center; gap: .4em; transition: transform 520ms cubic-bezier(0.22,1,0.36,1) }
 .lb-roll > span:last-child { transform: translateY(115%) }
 .group:hover .lb-roll > span:first-child, .group:focus-visible .lb-roll > span:first-child { transform: translateY(-115%) }

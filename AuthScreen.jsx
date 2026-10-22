@@ -330,7 +330,7 @@ export default function AuthScreen({ mode = 'signup' }) {
                       </>
                     ) : (
                       <div className="flex justify-end">
-                        <button type="button" onClick={() => { setView('reset'); setErrors({}) }} className="text-xs transition-colors hover:text-white" style={{ color: C.dim }}>
+                        <button type="button" onClick={() => { setView('reset'); setErrors({}) }} className="-my-2 py-2 text-[13px] transition-colors hover:text-white" style={{ color: C.dim }}>
                           Forgot password?
                         </button>
                       </div>

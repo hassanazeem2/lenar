@@ -720,7 +720,7 @@ function GlassSlider({ value, onChange, min = 0, max = 100, step = 1, label, for
 function StatusBlock({ m }) {
   const s = statusOf(m)
   return (
-    <span className="inline-flex w-[84px] items-center justify-center rounded-md py-1.5 text-[14px] font-medium" style={{ background: s.color, color: T.ink }}>
+    <span className="inline-flex w-[58px] items-center justify-center rounded-md py-1.5 text-[13px] font-medium sm:w-[84px] sm:text-[14px]" style={{ background: s.color, color: T.ink }}>
       {s.label}
     </span>
   )
@@ -818,8 +818,11 @@ export function ModelBoard({ models, live, checkedAt, selected, setSelected, tit
                 className={cn('lb-row group grid grid-cols-[1fr_auto] items-center gap-4 rounded-[10px] px-5 text-left outline-none focus-visible:ring-2 focus-visible:ring-[#cd8a4c] md:grid-cols-12', bare ? 'min-h-[52px]' : 'min-h-[68px]')}
                 style={{ background: T.tile }}
               >
-                <span className="flex items-center gap-3 md:col-span-4">
+                <span className="flex min-w-0 flex-col py-2.5 md:col-span-4 md:py-0">
                   <span className="font-medium transition-transform duration-300 group-hover:translate-x-1" style={{ fontSize: bare ? 16 : 'clamp(18px, 1.7vw, 24px)', letterSpacing: '-0.02em', color: C.fg }}>{m.name}</span>
+                  <span className="mt-0.5 text-[14px] tabular-nums md:hidden" style={{ color: C.dim }}>
+                    <span style={{ color: C.fg }}>{usd(m.price)}/M</span> · {usd(m.cacheRead)} cached · {m.latency}
+                  </span>
                 </span>
                 <span className="hidden text-[15px] md:col-span-2 md:block" style={{ color: C.dim }}>{FAMILY_ORDER.find((f) => f.id === m.family)?.short}</span>
                 <span className="hidden text-[18px] md:col-span-2 md:block" style={{ color: C.fg, fontVariantNumeric: 'tabular-nums' }}>{usd(m.price)} <span className="text-[14px]" style={{ color: C.dim }}>/M</span></span>

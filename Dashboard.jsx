@@ -43,6 +43,8 @@ const EASE = [0.22, 1, 0.36, 1]
 const TOPUPS = [1000, 2500, 5000, 10000]
 const BUYS = ['claude-opus-5-5', 'gpt-6-astra', 'deepseek-v4.1-flash']
 const WINDOWS = [{ id: '1h', label: '1 hour' }, { id: '24h', label: '24 hours' }, { id: '7d', label: '7 days' }]
+// Short labels on phones so the window switch fits beside the card title.
+const WINDOW_TABS = WINDOWS.map((w) => ({ id: w.id, label: <><span className="sm:hidden">{w.id}</span><span className="hidden sm:inline">{w.label}</span></> }))
 
 /* ---------- formatting ---------- */
 
@@ -165,7 +167,7 @@ function CopyBtn({ text, label = 'Copy' }) {
 
 function Card({ title, aside, children, className, pad = true }) {
   return (
-    <section className={['rounded-[14px]', className].filter(Boolean).join(' ')} style={{ background: D.surface }}>
+    <section className={['min-w-0 rounded-[14px]', className].filter(Boolean).join(' ')} style={{ background: D.surface }}>
       {title ? (
         <header className="flex min-h-[56px] items-center gap-3 px-5 pt-1">
           <h2 className="text-[16px] font-medium" style={{ color: D.text }}>{title}</h2>
@@ -421,7 +423,7 @@ function UsageStrip({ acct, win, setWin }) {
     { label: 'Saved by caching', value: u?.savings, format: (v) => smallMoney(v) },
   ]
   return (
-    <Card title="Usage" aside={<Segmented id="win" options={WINDOWS} value={win} onChange={setWin} />}>
+    <Card title="Usage" aside={<Segmented id="win" options={WINDOW_TABS} value={win} onChange={setWin} />}>
       <div className="grid grid-cols-2 gap-px overflow-hidden rounded-[10px] lg:grid-cols-4" style={{ background: D.rule }}>
         {cells.map((c) => (
           <div key={c.label} className="px-4 py-4" style={{ background: D.surface }}>
@@ -505,7 +507,20 @@ function Usage({ acct, reload, at }) {
           <SpendBars days={days} height={220} />
         </Card>
         <Card title="By period">
-          <div className="overflow-x-auto">
+          <ul className="flex flex-col sm:hidden">
+            {rows.map(({ id, label, u }) => (
+              <li key={id} className="border-t py-3 first:border-t-0" style={{ borderColor: D.rule }}>
+                <div className="flex items-baseline justify-between text-[15px]">
+                  <span style={{ color: D.text }}>Last {label}</span>
+                  <span className="tabular-nums" style={{ color: D.text }}>{u ? smallMoney(u.cost) : '—'}</span>
+                </div>
+                <p className="mt-1 text-[13px] tabular-nums" style={{ color: D.muted }}>
+                  {u ? `${compact(u.tokens)} tokens · ${u.tokens ? Math.round((u.cached / u.tokens) * 100) : 0}% from cache · ${smallMoney(u.savings)} saved` : '—'}
+                </p>
+              </li>
+            ))}
+          </ul>
+          <div className="hidden overflow-x-auto sm:block">
             <table className="w-full min-w-[560px] text-[14px]">
               <thead>
                 <tr className="h-10 text-left" style={{ color: D.faint }}>
@@ -718,7 +733,19 @@ function Billing({ acct, reload, at }) {
 
       <Card title="Payment history" className="mt-4">
         {acct.topups?.length ? (
-          <div className="overflow-x-auto">
+          <>
+          <ul className="flex flex-col sm:hidden">
+            {acct.topups.map((t) => (
+              <li key={t.id} className="flex items-center gap-3 border-t py-3 first:border-t-0" style={{ borderColor: D.rule }}>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[15px] tabular-nums" style={{ color: D.text }}>{money(t.paid)}</span>
+                  <span className="block text-[13px]" style={{ color: D.muted }}>{t.provider === 'crypto' ? 'Crypto' : 'Card'} · {day(t.created_at)} · <code className="font-mono">{t.id}</code></span>
+                </span>
+                <Pill tone={t.status === 'funded' ? 'positive' : 'warning'}>{t.status === 'funded' ? 'Added' : 'Processing'}</Pill>
+              </li>
+            ))}
+          </ul>
+          <div className="hidden overflow-x-auto sm:block">
             <table className="w-full min-w-[560px] text-[14px]">
               <thead>
                 <tr className="h-10 text-left" style={{ color: D.faint }}>
@@ -739,6 +766,7 @@ function Billing({ acct, reload, at }) {
               </tbody>
             </table>
           </div>
+          </>
         ) : (
           <div className="rounded-[10px] px-4 py-3 text-[14px]" style={{ border: `1px dashed ${D.control}`, color: D.muted }}>No payments yet. Your first top-up will show here.</div>
         )}
