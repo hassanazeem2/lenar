@@ -342,43 +342,83 @@ function Hero({ models, live, onPick, markRef, hideMark }) {
 
 /* ---------- 1b. scroll: the mark grows and opens into the live price screen ---------- */
 
-/** A window onto the live catalog: the flagships, their real prices, bars that grow as you arrive. */
-function PriceScreen({ models, p }) {
-  const rows = FLAGSHIPS.map((id) => models.find((m) => m.id === id)).filter(Boolean)
-  const max = Math.max(...rows.map((m) => m.price))
+// A pale identity tint per family, so a model is recognised before its name is read.
+const FAMILY_TINT = {
+  claude: ['#3a2618', '#e7a873'], gpt: ['#26291f', '#cfe0b4'], gemini: ['#1d2633', '#9cc0e6'],
+  deepseek: ['#1f2433', '#a9b8ef'], kimi: ['#33291a', '#e8c77a'], glm: ['#1f2b26', '#9fd6bd'],
+  grok: ['#2a2a2a', '#d6d6d6'], mimo: ['#33221f', '#eaa59a'],
+}
+const SCREEN_MODELS = ['claude-opus-5-5', 'gpt-6-astra', 'gemini-4-argon', 'claude-sonnet-5-5', 'deepseek-v4.1-flash', 'kimi-k3', 'glm-5.3', 'claude-haiku-5-5']
+
+/**
+ * A window onto the live catalog: eight flagships as spotlight cards, each with its real price,
+ * its cached rate and its live health. The cards rise in one after another as the screen opens,
+ * and clicking one opens it on the board below.
+ */
+function PriceScreen({ models, p, onPick }) {
+  // Phones show four so the whole screen fits while it's pinned.
+  const lg = useIsLarge()
+  const cards = SCREEN_MODELS.map((id) => models.find((m) => m.id === id)).filter(Boolean).slice(0, lg ? 8 : 4)
+  const up = models.filter((m) => m.status === 'up').length
   return (
-    <div data-ui className="overflow-hidden rounded-[14px]" style={{ background: T.tile }}>
-      <div className="flex items-center gap-3 px-5 py-3.5" style={{ background: T.tile2 }}>
-        <HexGlyph className="h-4 w-4" color={T.bone} hole={T.tile2} />
-        <span className="text-[14px]" style={{ color: C.fg }}>Live prices, $ per million tokens</span>
-        <span className="ml-auto flex items-center gap-2 text-[13px]" style={{ color: C.dim }}><LiveDot /> live</span>
+    <div data-ui className="relative overflow-hidden rounded-[18px]" style={{ background: T.tile, boxShadow: '0 40px 120px -40px rgba(0,0,0,0.9), inset 0 0 0 1px rgba(243,239,231,0.06)' }}>
+      <BorderBeam size={160} duration={9} colorFrom={T.copper} colorTo={T.bone} borderWidth={1.5} />
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-4 sm:px-6">
+        <HexGlyph className="h-5 w-5" color={T.bone} hole={T.tile} />
+        <span className="text-[16px] font-medium" style={{ color: C.fg }}>Live prices</span>
+        <span className="text-[14px]" style={{ color: C.dim }}>$ per million tokens</span>
+        <span className="ml-auto flex items-center gap-2 rounded-full px-3 py-1 text-[13px]" style={{ background: T.tile2, color: C.fg }}>
+          <LiveDot /> {up} of {models.length} up
+        </span>
       </div>
-      <div className="flex flex-col gap-1 p-2">
-        {rows.map((m, i) => <PriceBar key={m.id} m={m} ratio={m.price / max} p={p} i={i} />)}
+      <div className="grid grid-cols-2 gap-2 px-2 pb-2 sm:px-3 sm:pb-3 lg:grid-cols-4">
+        {cards.map((m, i) => <PriceCard key={m.id} m={m} p={p} i={i} onPick={onPick} />)}
       </div>
-      <div className="flex items-center justify-between px-5 py-3.5 text-[14px]" style={{ background: T.tile2, color: C.dim }}>
-        <span className="hidden sm:inline">Same request format for every model. Billed per token.</span>
-        <a href="#models" className="pointer-events-auto transition-colors hover:text-[#cd8a4c]" style={{ color: C.fg }}>All {models.length} models ↓</a>
+      <div className="flex items-center justify-between gap-4 px-5 py-3.5 text-[14px] sm:px-6" style={{ background: T.tile2, color: C.dim }}>
+        <span className="hidden sm:inline">One request format for every model. Billed per token, cached input for less.</span>
+        <a href="#models" className="pointer-events-auto group inline-flex items-center gap-1.5 transition-colors hover:text-[#cd8a4c]" style={{ color: C.fg }}>
+          All {models.length} models <ArrowRight size={14} className="rotate-90 transition-transform duration-300 group-hover:translate-y-0.5" />
+        </a>
       </div>
     </div>
   )
 }
 
-function PriceBar({ m, ratio, p, i }) {
-  // Without a scroll value (phones, reduced motion) the bars are simply full.
-  const start = 0.56 + i * 0.03
-  const fallback = useMotionValue(1)
-  const grow = useTransform(p ?? fallback, p ? [start, start + 0.2] : [0, 1], p ? [0.04, 1] : [1, 1])
+function PriceCard({ m, p, i, onPick }) {
+  // Scroll-linked when the screen is pinned; simply shown on phones and with reduced motion.
+  const start = 0.5 + i * 0.03
+  const still = useMotionValue(1)
+  const src = p ?? still
+  const opacity = useTransform(src, p ? [start, start + 0.1] : [0, 1], p ? [0, 1] : [1, 1])
+  const y = useTransform(src, p ? [start, start + 0.14] : [0, 1], p ? [28, 0] : [0, 0])
   const s = statusOf(m)
+  const [bg, fg] = FAMILY_TINT[m.family] ?? [T.tile3, C.fg]
+  const fam = FAMILY_ORDER.find((f) => f.id === m.family)?.short ?? ''
   return (
-    <div className="grid grid-cols-[1fr_auto_auto] items-center gap-3 rounded-[10px] px-4 py-2.5 sm:grid-cols-[minmax(150px,200px)_1fr_auto_auto] sm:gap-4" style={{ background: T.ink }}>
-      <span className="truncate text-[16px] font-medium" style={{ color: C.fg }}>{m.name}</span>
-      <div className="hidden h-2.5 overflow-hidden rounded-full sm:block" style={{ background: T.tile3 }}>
-        <motion.div className="h-full origin-left rounded-full" style={{ width: `${Math.max(6, ratio * 100)}%`, scaleX: grow, background: T.copper }} />
-      </div>
-      <span className="text-right text-[16px] sm:w-20" style={{ color: C.fg, fontVariantNumeric: 'tabular-nums' }}>{usd(m.price)}</span>
-      <span className="w-16 rounded-md py-1 text-center text-[13px] font-medium" style={{ background: s.color, color: T.ink }}>{s.label}</span>
-    </div>
+    <motion.div style={{ opacity, y }} className="pointer-events-auto">
+      <MagicCard
+        background={T.ink}
+        border="rgba(243,239,231,0.05)"
+        gradientSize={200}
+        className="h-full rounded-[12px]"
+      >
+        <button type="button" onClick={() => onPick?.(m.id)} className="flex h-full flex-col p-4 text-left outline-none focus-visible:ring-2 focus-visible:ring-[#cd8a4c]" aria-label={`${m.name}, ${usd(m.price)} per million tokens`}>
+          <span className="flex items-center gap-2">
+            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-[13px] font-semibold" style={{ background: bg, color: fg }}>{fam[0]}</span>
+            <span className="text-[13px]" style={{ color: C.dim }}>{fam}</span>
+            <span className="ml-auto flex items-center gap-1.5 text-[13px] tabular-nums" style={{ color: C.dim }}>
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: s.color }} />{m.latency}
+            </span>
+          </span>
+          <span className="mt-3 block truncate text-[16px] font-medium" style={{ color: C.fg }}>{m.name}</span>
+          <span className="mt-auto flex items-baseline gap-1 pt-4">
+            <span className="font-medium tabular-nums" style={{ fontSize: 30, letterSpacing: '-0.04em', lineHeight: 1, color: C.fg }}>{usd(m.price)}</span>
+            <span className="text-[14px]" style={{ color: C.dim }}>/M</span>
+          </span>
+          <span className="mt-1 text-[13px] tabular-nums" style={{ color: C.dim }}>{usd(m.cacheRead)} cached</span>
+        </button>
+      </MagicCard>
+    </motion.div>
   )
 }
 
@@ -416,7 +456,7 @@ function HeroStage({ models, live, onPick }) {
       <>
         <Hero models={models} live={live} onPick={onPick} />
         <section className={cn(BOARD, 'pt-2')}>
-          <Tile className="p-2" style={{ background: 'transparent' }}><PriceScreen models={models} /></Tile>
+          <Tile className="p-0" style={{ background: 'transparent' }}><PriceScreen models={models} onPick={onPick} /></Tile>
         </section>
       </>
     )
@@ -525,10 +565,10 @@ function PinnedHero({ models, live, onPick, withHero = true }) {
         {/* the screen it opens into */}
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-3 sm:px-6" style={{ perspective: 1400 }}>
           <motion.div
-            className="w-full max-w-[860px]"
+            className="w-full max-w-[1000px]"
             style={{ scale: shotScale, opacity: shotOpacity, rotateX: shotRotateX, y: shotY, transformOrigin: '50% 40%' }}
           >
-            <PriceScreen models={models} p={p} />
+            <PriceScreen models={models} p={p} onPick={onPick} />
           </motion.div>
           <motion.p className="mt-7 max-w-[34ch] text-center text-[17px] sm:max-w-none" style={{ opacity: capOpacity, y: capY, color: C.dim }}>
             The models you already use, at the price you’ll actually pay. <span style={{ color: C.fg }}>Every one on one key.</span>
