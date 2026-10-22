@@ -4,7 +4,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AnimatePresence, LayoutGroup, motion, useInView, useMotionTemplate, useMotionValue, useMotionValueEvent, useReducedMotion, useScroll, useSpring, useTransform } from 'motion/react'
-import { ArrowRight, ArrowUpRight, Check, Copy, Search, RefreshCw, Eye } from 'lucide-react'
+import { ArrowRight, ArrowUpRight, Check, Code2, Copy, Search, RefreshCw, Eye, Rocket, UserPlus, Wallet } from 'lucide-react'
+import { AnimatedBeam, BorderBeam, MagicCard } from './src/magicui.jsx'
 import { SlidingNumber } from '@animate-ui/react/primitives/texts/sliding-number'
 import { Tilt, TiltContent } from '@animate-ui/react/primitives/effects/tilt'
 import { FAMILY_ORDER, useLiveModels } from './models.js'
@@ -838,28 +839,55 @@ export function TopUps({ models, selected, setSelected }) {
         {TOPUPS.map((amt, i) => {
           const t = tok(tokensFor(amt, eff))
           const tone = tones[i]
+          const best = amt === 50
+          const share = tokensFor(amt, eff) / tokensFor(TOPUPS[TOPUPS.length - 1], eff)
           return (
             <motion.div
               key={amt}
               initial={{ opacity: 0, y: 60 }}
               whileInView={{ opacity: 1, y: 0 }}
+              whileHover={{ y: -8 }}
               viewport={{ once: true, amount: 0.2 }}
-              transition={{ duration: 0.8, delay: i * 0.08, ease: EASE }}
-              className="flex flex-col overflow-hidden rounded-[10px] lg:col-span-3"
-              style={{ background: tone.bg, color: tone.fg, height: `var(--h${i})` }}
+              transition={{ type: 'spring', stiffness: 260, damping: 26, delay: i * 0.06 }}
+              className="relative rounded-[14px] lg:col-span-3"
+              style={{ height: `var(--h${i})` }}
             >
-              <div className="flex-1 p-6 sm:p-7">
-                <p className="font-medium" style={{ fontSize: 'clamp(48px, 4.4vw, 64px)', lineHeight: 1, letterSpacing: '-0.05em' }}>${amt}</p>
-                <p className="mt-4 flex items-baseline gap-1 font-medium" style={{ fontSize: 26, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
-                  ≈ <SlidingNumber number={t.n} decimalPlaces={t.places} />{t.unit} tokens
-                </p>
-                <p className="mt-1 text-[16px]" style={{ opacity: 0.75 }}>on {m.name}</p>
-                {i >= 2 ? <p className="mt-5 max-w-[26ch] text-[16px]" style={{ opacity: 0.8 }}>Same balance works on all {models.length} models. Switch any time by changing the model name.</p> : null}
-              </div>
-              <Link to="/signup" className="group flex h-16 shrink-0 items-center justify-between px-6 text-[16px] font-medium transition-[filter] duration-200 hover:brightness-110 sm:px-7" style={{ background: tone.strip }}>
-                Top up ${amt}
-                <ArrowRight size={18} className="transition-transform duration-300 group-hover:translate-x-1" />
-              </Link>
+              <MagicCard
+                background={tone.bg}
+                border={tone.fg === T.ink ? 'rgba(10,9,8,0.10)' : 'rgba(243,239,231,0.06)'}
+                gradientFrom={tone.fg === T.ink ? T.ink : T.copper}
+                gradientTo={tone.fg === T.ink ? 'rgba(10,9,8,0.35)' : T.bone}
+                gradientColor={tone.fg === T.ink ? 'rgba(255,255,255,0.28)' : 'rgba(205,138,76,0.22)'}
+                className="h-full rounded-[14px]"
+                style={{ color: tone.fg }}
+              >
+                <div className="flex-1 p-6 sm:p-7">
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="font-medium" style={{ fontSize: 'clamp(48px, 4.4vw, 64px)', lineHeight: 1, letterSpacing: '-0.05em' }}>${amt}</p>
+                  </div>
+                  <p className="mt-4 flex items-baseline gap-1 font-medium" style={{ fontSize: 26, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
+                    ≈ <SlidingNumber number={t.n} decimalPlaces={t.places} />{t.unit} tokens
+                  </p>
+                  <p className="mt-1 text-[16px]" style={{ opacity: 0.75 }}>on {m.name}</p>
+                  {/* how far this amount goes, against the biggest top-up */}
+                  <div className="mt-5 h-1.5 overflow-hidden rounded-full" style={{ background: tone.fg === T.ink ? 'rgba(10,9,8,0.12)' : 'rgba(243,239,231,0.10)' }}>
+                    <motion.div
+                      className="h-full rounded-full"
+                      style={{ background: tone.fg === T.ink ? T.ink : T.copper }}
+                      initial={{ width: 0 }}
+                      whileInView={{ width: `${Math.max(4, share * 100)}%` }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 1.1, delay: 0.2 + i * 0.1, ease: EASE }}
+                    />
+                  </div>
+                  {i >= 2 ? <p className="mt-5 max-w-[26ch] text-[16px]" style={{ opacity: 0.8 }}>Same balance works on all {models.length} models. Switch any time by changing the model name.</p> : null}
+                </div>
+                <Link to="/signup" className="group/btn flex h-16 shrink-0 items-center justify-between px-6 text-[16px] font-medium transition-[filter] duration-200 hover:brightness-110 sm:px-7" style={{ background: tone.strip }}>
+                  Top up ${amt}
+                  <ArrowRight size={18} className="transition-transform duration-300 group-hover/btn:translate-x-1.5" />
+                </Link>
+              </MagicCard>
+              {best ? <BorderBeam size={120} duration={6} colorFrom={T.bone} colorTo="#ffe2c2" borderWidth={2} /> : null}
             </motion.div>
           )
         })}
@@ -871,45 +899,113 @@ export function TopUps({ models, selected, setSelected }) {
   )
 }
 
-/* ---------- 5. how it works: the setup as one bar ---------- */
+/* ---------- 5. how it works: three steps flow into the port, the port fans out to every model ---------- */
 
-const STAGES = [
-  { time: 'A minute', clause: 'First, make an account with email or Google.', grow: 1, bg: T.tile3, fg: T.fg },
-  { time: 'Two minutes', clause: 'Then top up by card or crypto. Your key is made with the payment.', grow: 2, bg: T.copperDeep, fg: T.fg },
-  { time: 'One line', clause: `Next, set base_url to ${API_BASE} in the SDK you already use.`, grow: 1.4, bg: T.copper, fg: T.ink },
-  { time: 'The rest is yours', clause: 'Finally, ship. Switch models by changing one string.', grow: 5, bg: T.bone, fg: T.ink },
+const STEPS = [
+  { icon: UserPlus, time: 'A minute', title: 'Make an account', body: 'Email or Google.' },
+  { icon: Wallet, time: 'Two minutes', title: 'Top up', body: 'Card or crypto. Your key is made with the payment.' },
+  { icon: Code2, time: 'One line', title: 'Set base_url', body: `${API_BASE} in the SDK you already use.` },
 ]
 
-function Stages() {
-  const [hover, setHover] = useState(null)
+function FlowNode({ nodeRef, children, className, style, active, onEnter }) {
+  return (
+    <motion.div
+      ref={nodeRef}
+      onMouseEnter={onEnter}
+      onFocus={onEnter}
+      tabIndex={onEnter ? 0 : undefined}
+      whileHover={{ y: -3 }}
+      transition={{ type: 'spring', stiffness: 400, damping: 28 }}
+      className={cn('relative z-10 rounded-[14px] outline-none transition-[background-color,box-shadow] duration-300 focus-visible:ring-2 focus-visible:ring-[#cd8a4c]', className)}
+      style={{ background: active ? T.tile2 : T.tile, boxShadow: active ? `inset 0 0 0 1px rgba(205,138,76,0.45)` : 'inset 0 0 0 1px rgba(243,239,231,0.05)', ...style }}
+    >
+      {children}
+    </motion.div>
+  )
+}
+
+function Workflow({ models }) {
+  const box = useRef(null)
+  const hub = useRef(null)
+  const ship = useRef(null)
+  const s0 = useRef(null), s1 = useRef(null), s2 = useRef(null)
+  const stepRefs = [s0, s1, s2]
+  const m0 = useRef(null), m1 = useRef(null), m2 = useRef(null), m3 = useRef(null), m4 = useRef(null), m5 = useRef(null)
+  const modelRefs = [m0, m1, m2, m3, m4, m5]
+  const fams = FAMILY_ORDER.filter((f) => models.some((m) => m.family === f.id)).slice(0, 6)
+  const [active, setActive] = useState(null)
+  const lg = useIsLarge()
   return (
     <section className={BOARD}>
-      <SectionHead title="Live in under five minutes." />
-      <div data-ui className="flex flex-col gap-1.5 md:h-[24vh] md:min-h-[190px] md:flex-row" onMouseLeave={() => setHover(null)}>
-        {STAGES.map((s, i) => (
-          <motion.button
-            key={s.time}
-            type="button"
-            onMouseEnter={() => setHover(i)}
-            onFocus={() => setHover(i)}
-            initial={{ opacity: 0, scaleX: 0.6 }}
-            whileInView={{ opacity: 1, scaleX: 1 }}
-            viewport={{ once: true, amount: 0.4 }}
-            transition={{ duration: 0.8, delay: i * 0.12, ease: EASE }}
-            className="min-h-[96px] origin-left overflow-hidden rounded-[10px] p-5 md:basis-0 text-left outline-none transition-[flex-grow] duration-500 focus-visible:ring-2 focus-visible:ring-white/40"
-            style={{ flexGrow: s.grow + (hover === i ? 2.2 : 0), minWidth: 120, background: s.bg, color: s.fg }}
-          >
-            <span className="block font-medium" style={{ fontSize: 'clamp(20px, 2vw, 30px)', letterSpacing: '-0.03em', lineHeight: 1.1 }}>{s.time}</span>
-            <span className="mt-2 block max-w-[30ch] text-[16px] md:hidden" style={{ opacity: 0.85 }}>{s.clause}</span>
-          </motion.button>
+      <SectionHead title="Live in under five minutes.">
+        <p className="max-w-[40ch] text-[16px]" style={{ color: C.dim }}>Three steps into one port. From there every model is one string away.</p>
+      </SectionHead>
+      <div ref={box} className="relative overflow-hidden rounded-[14px] p-4 sm:p-6 lg:p-10" style={{ background: '#0e0c0b' }} onMouseLeave={() => setActive(null)}>
+        <div className="grid items-center gap-y-10 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.7fr)_minmax(0,1fr)] lg:gap-x-10">
+          {/* steps */}
+          <div className="flex flex-col gap-3">
+            {STEPS.map((st, i) => (
+              <FlowNode key={st.title} nodeRef={stepRefs[i]} active={active === i} onEnter={() => setActive(i)} className="flex items-start gap-4 p-4 sm:p-5">
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[10px]" style={{ background: active === i ? T.copper : T.tile3, color: active === i ? T.ink : C.fg, transition: 'background-color 300ms, color 300ms' }}>
+                  <st.icon size={18} strokeWidth={1.8} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex flex-wrap items-baseline justify-between gap-x-3">
+                    <span className="text-[17px] font-medium" style={{ color: C.fg }}>{st.title}</span>
+                    <span className="text-[14px]" style={{ color: T.copper }}>{st.time}</span>
+                  </span>
+                  <span className="mt-1 block text-[15px] leading-snug" style={{ color: 'rgba(243,239,231,0.72)' }}>{st.body}</span>
+                </span>
+              </FlowNode>
+            ))}
+          </div>
+
+          {/* the port */}
+          <div className="flex flex-col items-center gap-4">
+            <div ref={hub} className="relative z-10 grid h-[132px] w-[132px] place-items-center rounded-full" style={{ background: T.tile, boxShadow: 'inset 0 0 0 1px rgba(243,239,231,0.07)' }}>
+              <span className="lb-pulse absolute inset-0 rounded-full" />
+              <HexGlyph className="h-16 w-16" color={T.bone} hole={T.tile} dot={T.copper} />
+            </div>
+            <code className="rounded-full px-3 py-1 font-mono text-[13px]" style={{ background: T.tile2, color: C.fg }}>{API_BASE}</code>
+          </div>
+
+          {/* every model, then ship */}
+          <div className="flex flex-col gap-3">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-2">
+              {fams.map((f, i) => (
+                <FlowNode key={f.id} nodeRef={modelRefs[i]} className="flex items-center justify-between gap-2 px-4 py-3">
+                  <span className="text-[15px] font-medium" style={{ color: C.fg }}>{f.short}</span>
+                  <span className="text-[13px] tabular-nums" style={{ color: C.dim }}>{models.filter((m) => m.family === f.id).length}</span>
+                </FlowNode>
+              ))}
+            </div>
+            <FlowNode nodeRef={ship} className="flex items-center gap-4 p-4 sm:p-5" style={{ background: T.bone }}>
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[10px]" style={{ background: T.ink, color: T.bone }}><Rocket size={18} strokeWidth={1.8} /></span>
+              <span>
+                <span className="block text-[17px] font-medium" style={{ color: T.ink }}>The rest is yours</span>
+                <span className="block text-[15px]" style={{ color: 'rgba(10,9,8,0.7)' }}>Ship, and switch models by changing one string.</span>
+              </span>
+            </FlowNode>
+          </div>
+        </div>
+
+        {/* beams: steps into the port, the port out to each family; vertical on phones */}
+        {stepRefs.map((r, i) => (
+          <AnimatedBeam
+            key={`in${i}`}
+            containerRef={box}
+            fromRef={r}
+            toRef={hub}
+            curvature={lg ? (i - 1) * -40 : 0}
+            duration={3.2}
+            delay={i * 0.35}
+            pathOpacity={active === i ? 0.4 : 0.12}
+            pathWidth={active === i ? 2.5 : 2}
+          />
         ))}
-      </div>
-      <div className="mt-4 hidden gap-1.5 md:flex">
-        {STAGES.map((s, i) => (
-          <p key={s.time} className="text-[16px] transition-[flex-grow,color] duration-500" style={{ flexGrow: s.grow + (hover === i ? 2.2 : 0), flexBasis: 0, minWidth: 120, color: hover == null || hover === i ? C.fg : C.dim, paddingRight: 16 }}>
-            <span className="block max-w-[24ch]">{s.clause}</span>
-          </p>
-        ))}
+        {lg ? modelRefs.slice(0, fams.length).map((r, i) => (
+          <AnimatedBeam key={`out${i}`} containerRef={box} fromRef={hub} toRef={r} curvature={(i % 2 ? 1 : -1) * 20} duration={3.2} delay={1.1 + i * 0.12} />
+        )) : <AnimatedBeam containerRef={box} fromRef={hub} toRef={modelRefs[0]} duration={3.2} delay={1.1} />}
       </div>
     </section>
   )
@@ -1238,6 +1334,8 @@ export const BOARD_STYLES = `
 .lb-orbit { animation: lb-spin 60s linear infinite }
 .lb-counter { animation: lb-spin 60s linear infinite reverse }
 .lb-ping { animation: lb-ping 1.8s cubic-bezier(0,0,.2,1) infinite }
+@keyframes lb-pulse { 0% { box-shadow: 0 0 0 0 rgba(205,138,76,0.35) } 100% { box-shadow: 0 0 0 28px rgba(205,138,76,0) } }
+.lb-pulse { animation: lb-pulse 2.4s ease-out infinite }
 .lb-spin-slow { animation: lb-spin 24s linear infinite }
 .lb-row { transition: background-color 200ms }
 .lb-row:hover { background-color: #1c1915 !important }
@@ -1246,7 +1344,7 @@ export const BOARD_STYLES = `
 @media (min-width: 1280px) { :root { --orbit: 150px } }
 @media (max-width: 1023px) { :root { --h0: auto; --h1: auto; --h2: auto; --h3: auto } }
 @media (prefers-reduced-motion: reduce) {
-  .lb-track, .lb-orbit, .lb-counter, .lb-ping, .lb-spin-slow, .lb-nudge { animation: none }
+  .lb-track, .lb-orbit, .lb-counter, .lb-ping, .lb-spin-slow, .lb-nudge, .lb-pulse { animation: none }
 }
 `
 
@@ -1264,7 +1362,7 @@ export default function LandingBoard() {
       <Marquee models={models} onPick={pick} />
       <ModelBoard models={models} live={live} checkedAt={checkedAt} selected={selected} setSelected={setSelected} />
       <TopUps models={models} selected={selected} setSelected={setSelected} />
-      <Stages />
+      <Workflow models={models} />
       <Features models={models} selected={selected} />
       <FaqIndex models={models} />
       <Close />
