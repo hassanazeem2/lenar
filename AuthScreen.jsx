@@ -374,7 +374,7 @@ export default function AuthScreen({ mode = 'signup' }) {
 
                 {isSignup && view === 'form' ? (
                   <p className="pt-2 text-center text-xs leading-relaxed" style={{ color: C.faint }}>
-                    By creating an account you agree to our Terms and Privacy Policy.
+                    By creating an account you agree to our <Link to="/terms" className="underline underline-offset-2 hover:text-white">Terms</Link> and <Link to="/privacy" className="underline underline-offset-2 hover:text-white">Privacy Policy</Link>.
                   </p>
                 ) : null}
               </form>

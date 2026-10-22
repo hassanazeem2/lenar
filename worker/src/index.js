@@ -105,6 +105,13 @@ async function proxyAccountApi(request, env) {
     const value = request.headers.get(name)
     if (value) headers.set(name, value)
   }
+  // The backend rate-limits by visitor, and every request here comes from Cloudflare's IPs,
+  // so hand it the real one. The shared key proves the header came from this worker.
+  const ip = request.headers.get('cf-connecting-ip')
+  if (ip && env.PROXY_KEY) {
+    headers.set('x-lenar-client-ip', ip)
+    headers.set('x-lenar-proxy-key', env.PROXY_KEY)
+  }
   const init = { method: request.method, headers, redirect: 'manual' }
   if (!['GET', 'HEAD'].includes(request.method)) init.body = request.body
   const path = url.pathname.slice(ACCOUNT_API.length) || '/'
@@ -121,6 +128,20 @@ async function proxyAccountApi(request, env) {
   return new Response(upstream.body, { status: upstream.status, statusText: upstream.statusText, headers: out })
 }
 
+// Pages the app actually has. Anything else still gets the app (so its own 404 page shows),
+// but with a real 404 status, so search engines don't index made-up URLs.
+const APP_ROUTES = /^\/(|pricing|docs|status|signin|signup|reset-password|verify|terms|privacy|refunds|contact|auth\/callback|dashboard(\/.*)?)\/?$/
+
+async function serveSite(request, env) {
+  const res = await env.ASSETS.fetch(request)
+  const { pathname } = new URL(request.url)
+  const isPage = request.method === 'GET' && (res.headers.get('content-type') || '').includes('text/html')
+  if (isPage && !APP_ROUTES.test(pathname)) {
+    return new Response(res.body, { status: 404, headers: res.headers })
+  }
+  return res
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url)
@@ -129,6 +150,6 @@ export default {
     }
     if (isAccountApi(url.pathname)) return proxyAccountApi(request, env)
     // Everything else: the static Vite build, served by Pages (env.ASSETS).
-    return env.ASSETS.fetch(request)
+    return serveSite(request, env)
   },
 }

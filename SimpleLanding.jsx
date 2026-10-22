@@ -486,6 +486,12 @@ export function Footer() {
       { label: 'Sign in', to: '/signin' },
       { label: 'Dashboard', to: '/dashboard' },
     ]],
+    ['Help', [
+      { label: 'Contact support', to: '/contact' },
+      { label: 'Terms', to: '/terms' },
+      { label: 'Privacy', to: '/privacy' },
+      { label: 'Refunds', to: '/refunds' },
+    ]],
   ]
   return (
     <footer className="relative z-10 mt-2" style={{ background: C.bg }}>

@@ -10,7 +10,7 @@ import { Link, NavLink, Navigate, Route, Routes, useLocation, useSearchParams } 
 import { AnimatePresence, motion, useSpring, useTransform } from 'motion/react'
 import {
   Activity, AlertTriangle, ArrowRight, ArrowUpRight, BarChart3, BookOpen, Check, Copy, CreditCard,
-  KeyRound, Layers, LayoutGrid, LogOut, Menu, RefreshCw, X,
+  KeyRound, Layers, LayoutGrid, LifeBuoy, LogOut, Menu, RefreshCw, X,
 } from 'lucide-react'
 import { STYLES, MetalHex } from './SimpleLanding.jsx'
 import { BOARD_STYLES, ModelBoard, Segmented } from './LandingBoard.jsx'
@@ -800,6 +800,7 @@ const RESOURCES = [
   { to: '/dashboard/models', label: 'Models', icon: Layers },
   { to: '/docs', label: 'Docs', icon: BookOpen, external: true },
   { to: '/status', label: 'Status', icon: Activity, external: true },
+  { to: '/contact', label: 'Support', icon: LifeBuoy, external: true },
 ]
 const PAGE_NAMES = { '': 'Overview', usage: 'Usage', key: 'API key', billing: 'Billing', models: 'Models' }
 

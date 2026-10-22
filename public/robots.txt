@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /api/
+Disallow: /auth/
+Disallow: /reset-password
+Disallow: /verify
+
+Sitemap: https://lenar.cc/sitemap.xml

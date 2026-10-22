@@ -5,13 +5,14 @@ import { q } from '../db.js'
 import { signToken, requireAuth } from '../auth.js'
 import { sendVerifyEmail, sendResetEmail } from '../email.js'
 import { siteUrl as SITE_URL } from '../site.js'
+import { loginLimits, signupLimits, forgotLimits, tokenLimits } from '../limits.js'
 
 const router = Router()
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const token = () => crypto.randomBytes(32).toString('hex')
 
-router.post('/signup', async (req, res) => {
+router.post('/signup', signupLimits, async (req, res) => {
   const { email, password } = req.body || {}
   if (!email || !EMAIL_RE.test(email)) return res.status(400).json({ error: 'Enter a valid email.' })
   if (!password || password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters.' })
@@ -30,7 +31,7 @@ router.post('/signup', async (req, res) => {
   res.json({ token: signToken(rows[0].id) })
 })
 
-router.post('/verify', async (req, res) => {
+router.post('/verify', tokenLimits, async (req, res) => {
   const { token: t } = req.body || {}
   if (!t) return res.status(400).json({ error: 'missing token' })
   const { rows } = await q(
@@ -42,7 +43,7 @@ router.post('/verify', async (req, res) => {
   res.json({ ok: true })
 })
 
-router.post('/login', async (req, res) => {
+router.post('/login', loginLimits, async (req, res) => {
   const { email, password } = req.body || {}
   const { rows } = await q('select id, password_hash from users where email = $1', [String(email || '').toLowerCase()])
   const user = rows[0]
@@ -58,7 +59,7 @@ router.get('/me', requireAuth, async (req, res) => {
   res.json({ user: rows[0] })
 })
 
-router.post('/forgot-password', async (req, res) => {
+router.post('/forgot-password', forgotLimits, async (req, res) => {
   const { email } = req.body || {}
   const { rows } = await q('select id from users where email = $1', [String(email || '').toLowerCase()])
   // Always 200 — don't reveal whether an email is registered.
@@ -70,7 +71,7 @@ router.post('/forgot-password', async (req, res) => {
   res.json({ ok: true })
 })
 
-router.post('/reset-password', async (req, res) => {
+router.post('/reset-password', tokenLimits, async (req, res) => {
   const { token: t, password } = req.body || {}
   if (!password || password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters.' })
   const hash = await bcrypt.hash(password, 12)

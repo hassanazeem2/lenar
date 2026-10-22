@@ -10,6 +10,7 @@ import ResetPassword from '../ResetPassword.jsx'
 import AuthCallback from '../AuthCallback.jsx'
 import VerifyEmail from '../VerifyEmail.jsx'
 import NotFound from '../NotFound.jsx'
+import { LegalPage, ContactPage } from '../LegalPage.jsx'
 
 // The bigger pages load on first visit, so the landing page doesn't download them.
 const Dashboard = lazy(() => import('../Dashboard.jsx'))
@@ -64,6 +65,10 @@ function AnimatedRoutes() {
           <Route path="*" element={<NotFound />} />
           <Route path="/docs" element={<DocsPage />} />
           <Route path="/status" element={<StatusPage />} />
+          <Route path="/terms" element={<LegalPage doc="terms" />} />
+          <Route path="/privacy" element={<LegalPage doc="privacy" />} />
+          <Route path="/refunds" element={<LegalPage doc="refunds" />} />
+          <Route path="/contact" element={<ContactPage />} />
         </Routes>
         </Suspense>
       </motion.div>
