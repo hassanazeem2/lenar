@@ -846,95 +846,118 @@ export function ModelBoard({ models, live, checkedAt, selected, setSelected, tit
 
 /* ---------- 4. top-ups that step up ---------- */
 
+const DIAL_PICKS = ['claude-opus-5-5', 'gpt-6-astra', 'claude-sonnet-5-5', 'gemini-4-argon', 'kimi-k3', 'deepseek-v4.1-flash']
+const TOKENS_PER_PAGE = 650 // about 500 words of English
+const RING_R = 132
+const RING_C = 2 * Math.PI * RING_R
+
+/** The amount as a dial: a copper ring filled to its share of $100, springing as the amount changes. */
+function CreditDial({ amt, t, m }) {
+  const fill = useSpring(amt / 100, { stiffness: 120, damping: 22 })
+  useEffect(() => { fill.set(amt / 100) }, [amt, fill])
+  const dash = useTransform(fill, (v) => `${v * RING_C} ${RING_C}`)
+  const size = 340
+  const c = size / 2
+  return (
+    <div className="relative mx-auto aspect-square w-full max-w-[340px]">
+      <svg viewBox={`0 0 ${size} ${size}`} className="h-full w-full -rotate-90" aria-hidden>
+        <circle cx={c} cy={c} r={RING_R} fill="none" stroke={T.tile2} strokeWidth="16" />
+        <motion.circle cx={c} cy={c} r={RING_R} fill="none" stroke={T.copper} strokeWidth="16" strokeLinecap="round" style={{ strokeDasharray: dash }} />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+        <p className="flex items-start font-medium" style={{ fontSize: 'clamp(56px, 6vw, 76px)', lineHeight: 1, letterSpacing: '-0.05em', color: C.fg }}>
+          <span className="mt-2 text-[0.5em]">$</span><SlidingNumber number={amt} />
+        </p>
+        <p className="mt-3 flex items-baseline gap-1 text-[20px] font-medium tabular-nums" style={{ color: T.copper }}>
+          ≈ <SlidingNumber number={t.n} decimalPlaces={t.places} />{t.unit} tokens
+        </p>
+        <p className="mt-1 max-w-[18ch] truncate text-[15px]" style={{ color: C.dim }}>on {m.name}</p>
+      </div>
+    </div>
+  )
+}
+
 export function TopUps({ models, selected, setSelected }) {
   const [cached, setCached] = useState(0)
-  const picks = FLAGSHIPS.slice(0, 5).map((id) => models.find((m) => m.id === id)).filter(Boolean)
+  const [amt, setAmt] = useState(25)
+  const picks = DIAL_PICKS.map((id) => models.find((x) => x.id === id)).filter(Boolean)
   const m = models.find((x) => x.id === selected) ?? picks[0]
-  const eff = m.price * (1 - cached / 100) + m.cacheRead * (cached / 100)
-  const tones = [
-    { bg: T.tile2, fg: C.fg, strip: T.tile3 },
-    { bg: T.copperDeep, fg: C.fg, strip: '#5a3619' },
-    { bg: T.copper, fg: T.ink, strip: '#b57438' },
-    { bg: T.bone, fg: T.ink, strip: '#d6c2a6' },
-  ]
+  const effOf = (x) => x.price * (1 - cached / 100) + x.cacheRead * (cached / 100)
+  const tokensM = (x) => tokensFor(amt, effOf(x))
+  const t = tok(tokensM(m))
+  // Bars on a square-root scale: DeepSeek buys ~35x what Opus does, and a linear bar would hide Opus.
+  const maxRoot = Math.sqrt(Math.max(...picks.map(tokensM)))
+  const pages = Math.round((tokensM(m) * 1e6) / TOKENS_PER_PAGE)
+  const replies = Math.round((tokensM(m) * 1e6) / 1000)
   return (
     <section className={BOARD}>
-      <div className="flex flex-wrap items-end justify-between gap-x-10 gap-y-6 px-1 pb-6 pt-28 sm:pt-40">
-        <motion.h2
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.7, ease: EASE }}
-          className="font-medium"
-          style={{ fontSize: 'clamp(36px, 4.6vw, 68px)', lineHeight: 1, letterSpacing: '-0.04em', color: C.fg }}
-        >
-          Top up once.<br />Spend it anywhere.
-        </motion.h2>
-        <div className="flex w-full max-w-[640px] flex-col gap-4">
-          <Segmented id="pick" wrap options={picks.map((p) => ({ id: p.id, label: p.name }))} value={m.id} onChange={setSelected} />
-          <GlassSlider label="Cached input" value={cached} onChange={setCached} min={0} max={80} step={5} format={(v) => `${v}%`} />
+      <SectionHead title={<>Top up once.<br />Spend it anywhere.</>}>
+        <p className="max-w-[40ch] text-[16px]" style={{ color: C.dim }}>Pick an amount. One balance pays for every model, at each model’s own rate.</p>
+      </SectionHead>
+      <div className="grid items-center gap-10 px-1 lg:grid-cols-12 lg:gap-12">
+        {/* the dial and the action */}
+        <div className="flex flex-col items-center lg:col-span-5">
+          <CreditDial amt={amt} t={t} m={m} />
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+            <Segmented id="amt" options={TOPUPS.map((v) => ({ id: v, label: `$${v}` }))} value={amt} onChange={setAmt} />
+          </div>
+          <div className="mt-5"><PrimaryButton to="/signup" tone="copper">Top up ${amt}</PrimaryButton></div>
+        </div>
+
+        {/* what it buys, model by model */}
+        <div className="lg:col-span-7">
+          <h3 className="text-[22px] font-medium" style={{ letterSpacing: '-0.02em', color: C.fg }}>
+            What ${amt} gets you
+          </h3>
+          <ul className="mt-4 flex flex-col gap-1">
+            {picks.map((x) => {
+              const on = x.id === m.id
+              const v = tok(tokensM(x))
+              return (
+                <li key={x.id}>
+                  <button
+                    type="button"
+                    onClick={() => setSelected(x.id)}
+                    aria-pressed={on}
+                    className="group grid w-full grid-cols-[minmax(0,10rem)_1fr_auto] items-center gap-4 rounded-[12px] px-4 py-3 text-left outline-none transition-colors duration-200 hover:bg-[#1c1915] focus-visible:ring-2 focus-visible:ring-[#cd8a4c] sm:grid-cols-[minmax(0,12rem)_1fr_auto]"
+                    style={{ background: on ? T.tile2 : 'transparent' }}
+                  >
+                    <span className="truncate text-[16px]" style={{ color: on ? C.fg : 'rgba(243,239,231,0.78)', fontWeight: on ? 500 : 400 }}>{x.name}</span>
+                    <span className="h-2 overflow-hidden rounded-full" style={{ background: T.tile3 }}>
+                      <motion.span
+                        className="block h-full rounded-full"
+                        animate={{ width: `${Math.max(3, (Math.sqrt(tokensM(x)) / maxRoot) * 100)}%`, backgroundColor: on ? T.copper : 'rgba(205,138,76,0.45)' }}
+                        transition={{ type: 'spring', stiffness: 140, damping: 22 }}
+                      />
+                    </span>
+                    <span className="w-[7.5rem] text-right text-[16px] tabular-nums" style={{ color: on ? C.fg : C.dim }}>
+                      {v.n.toFixed(v.places)}{v.unit} <span className="text-[13px]">tokens</span>
+                    </span>
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+
+          <div className="mt-6 grid gap-2 sm:grid-cols-2">
+            <div className="rounded-[12px] px-4 py-3.5" style={{ background: T.tile }}>
+              <p className="text-[24px] font-medium tabular-nums" style={{ letterSpacing: '-0.02em', color: C.fg }}>≈ {pages.toLocaleString('en-US')}</p>
+              <p className="text-[14px]" style={{ color: C.dim }}>pages of text written by {m.name}</p>
+            </div>
+            <div className="rounded-[12px] px-4 py-3.5" style={{ background: T.tile }}>
+              <p className="text-[24px] font-medium tabular-nums" style={{ letterSpacing: '-0.02em', color: C.fg }}>≈ {replies.toLocaleString('en-US')}</p>
+              <p className="text-[14px]" style={{ color: C.dim }}>replies of about 1,000 tokens each</p>
+            </div>
+          </div>
+
+          <div className="mt-6 max-w-[520px]">
+            <GlassSlider label="Cached input" value={cached} onChange={setCached} min={0} max={80} step={5} format={(v) => `${v}%`} />
+          </div>
+          <p className="mt-3 max-w-[64ch] text-[14px]" style={{ color: C.dim }}>
+            Estimates use live rates{cached ? ` with ${cached}% of input served from cache` : ''}. A page is about 650 tokens. No subscription and no monthly fee.
+          </p>
         </div>
       </div>
-      <div className="grid gap-2 lg:grid-cols-12 lg:items-end">
-        {TOPUPS.map((amt, i) => {
-          const t = tok(tokensFor(amt, eff))
-          const tone = tones[i]
-          const best = amt === 50
-          const share = tokensFor(amt, eff) / tokensFor(TOPUPS[TOPUPS.length - 1], eff)
-          return (
-            <motion.div
-              key={amt}
-              initial={{ opacity: 0, y: 60 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              whileHover={{ y: -8 }}
-              viewport={{ once: true, amount: 0.2 }}
-              transition={{ type: 'spring', stiffness: 260, damping: 26, delay: i * 0.06 }}
-              className="relative rounded-[14px] lg:col-span-3"
-              style={{ height: `var(--h${i})` }}
-            >
-              <MagicCard
-                background={tone.bg}
-                border={tone.fg === T.ink ? 'rgba(10,9,8,0.10)' : 'rgba(243,239,231,0.06)'}
-                gradientFrom={tone.fg === T.ink ? T.ink : T.copper}
-                gradientTo={tone.fg === T.ink ? 'rgba(10,9,8,0.35)' : T.bone}
-                gradientColor={tone.fg === T.ink ? 'rgba(255,255,255,0.28)' : 'rgba(205,138,76,0.22)'}
-                className="h-full rounded-[14px]"
-                style={{ color: tone.fg }}
-              >
-                <div className="flex-1 p-6 sm:p-7">
-                  <div className="flex items-start justify-between gap-3">
-                    <p className="font-medium" style={{ fontSize: 'clamp(48px, 4.4vw, 64px)', lineHeight: 1, letterSpacing: '-0.05em' }}>${amt}</p>
-                  </div>
-                  <p className="mt-4 flex items-baseline gap-1 font-medium" style={{ fontSize: 26, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
-                    ≈ <SlidingNumber number={t.n} decimalPlaces={t.places} />{t.unit} tokens
-                  </p>
-                  <p className="mt-1 text-[16px]" style={{ opacity: 0.75 }}>on {m.name}</p>
-                  {/* how far this amount goes, against the biggest top-up */}
-                  <div className="mt-5 h-1.5 overflow-hidden rounded-full" style={{ background: tone.fg === T.ink ? 'rgba(10,9,8,0.12)' : 'rgba(243,239,231,0.10)' }}>
-                    <motion.div
-                      className="h-full rounded-full"
-                      style={{ background: tone.fg === T.ink ? T.ink : T.copper }}
-                      initial={{ width: 0 }}
-                      whileInView={{ width: `${Math.max(4, share * 100)}%` }}
-                      viewport={{ once: true }}
-                      transition={{ duration: 1.1, delay: 0.2 + i * 0.1, ease: EASE }}
-                    />
-                  </div>
-                  {i >= 2 ? <p className="mt-5 max-w-[26ch] text-[16px]" style={{ opacity: 0.8 }}>Same balance works on all {models.length} models. Switch any time by changing the model name.</p> : null}
-                </div>
-                <Link to="/signup" className="group/btn flex h-16 shrink-0 items-center justify-between px-6 text-[16px] font-medium transition-[filter] duration-200 hover:brightness-110 sm:px-7" style={{ background: tone.strip }}>
-                  Top up ${amt}
-                  <ArrowRight size={18} className="transition-transform duration-300 group-hover/btn:translate-x-1.5" />
-                </Link>
-              </MagicCard>
-              {best ? <BorderBeam size={120} duration={6} colorFrom={T.bone} colorTo="#ffe2c2" borderWidth={2} /> : null}
-            </motion.div>
-          )
-        })}
-      </div>
-      <p className="mt-4 max-w-[72ch] px-1 text-[15px]" style={{ color: C.dim }}>
-        Estimates use {m.name}’s live rate of {usd(m.price)} per million tokens{cached ? ` and ${usd(m.cacheRead)} for cached input` : ''}. No subscription and no monthly fee.
-      </p>
     </section>
   )
 }
