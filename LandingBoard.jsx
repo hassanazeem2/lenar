@@ -3,14 +3,14 @@
 // catalog (models.js), so every number here is a real rate.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { AnimatePresence, LayoutGroup, motion, useInView, useMotionTemplate, useMotionValue, useMotionValueEvent, useReducedMotion, useScroll, useSpring, useTransform } from 'motion/react'
+import { animate, AnimatePresence, LayoutGroup, motion, useInView, useMotionTemplate, useMotionValue, useMotionValueEvent, useReducedMotion, useScroll, useSpring, useTransform } from 'motion/react'
 import { ArrowRight, ArrowUpRight, Check, Code2, Copy, Search, RefreshCw, Eye, Rocket, UserPlus, Wallet } from 'lucide-react'
 import { AnimatedBeam, BorderBeam, MagicCard } from './src/magicui.jsx'
 import { SlidingNumber } from '@animate-ui/react/primitives/texts/sliding-number'
 import { Tilt, TiltContent } from '@animate-ui/react/primitives/effects/tilt'
 import { FAMILY_ORDER, useLiveModels } from './models.js'
 import { API_BASE } from './src/lib/api.js'
-import { C, cn, MARK_D, MetalMark, PrimaryButton, HexGlyph, smoothTo, glideTo } from './SimpleLanding.jsx'
+import { C, cn, MARK_D, MetalMark, MetalHex, PrimaryButton, HexGlyph, smoothTo, glideTo } from './SimpleLanding.jsx'
 
 export const T = {
   tile: '#14120f',
@@ -55,14 +55,14 @@ const statusOf = (m) => STATUS[m.status] ?? STATUS.unknown
 /* ---------- shared bits ---------- */
 
 /** One tile on the board: a flat filled rectangle that rises in when it first scrolls into view. */
-function Tile({ children, className, style, i = 0, as = 'div', ...rest }) {
+function Tile({ children, className, style, i = 0, base = 0.06, as = 'div', ...rest }) {
   const M = motion[as]
   return (
     <M
       initial={{ opacity: 0, y: 24 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.15 }}
-      transition={{ duration: 0.7, delay: 0.06 + i * 0.07, ease: EASE }}
+      transition={{ duration: 0.8, delay: base + i * 0.08, ease: EASE }}
       className={cn('relative overflow-hidden rounded-[10px]', className)}
       style={{ background: T.tile, ...style }}
       {...rest}
@@ -168,6 +168,71 @@ export function AsciiField({ className, depth = 0.38, color = '#e9d9c3', flood }
     return () => { cancelAnimationFrame(raf); ro.disconnect(); io.disconnect(); window.removeEventListener('pointermove', move) }
   }, [reduce, depth, color, flood])
   return <canvas ref={ref} aria-hidden className={cn('pointer-events-none block h-full w-full select-none', className)} />
+}
+
+/* ---------- 0. the intro: the mark spins in, then the page zooms out of it ---------- */
+
+// Once per browser session, skipped under reduced motion. The hero's own entrance waits for it.
+const PLAYS_INTRO = typeof window !== 'undefined'
+  && !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  && !sessionStorage.getItem('lenar-intro')
+const HERO_DELAY = PLAYS_INTRO ? 1.0 : 0.05
+
+function Intro() {
+  const [show, setShow] = useState(PLAYS_INTRO)
+  useEffect(() => {
+    if (!show) return
+    sessionStorage.setItem('lenar-intro', '1')
+    const t = setTimeout(() => setShow(false), 1050)
+    return () => clearTimeout(t)
+  }, [show])
+  return (
+    <AnimatePresence>
+      {show ? (
+        <motion.div
+          key="intro"
+          className="fixed inset-0 z-[100] grid place-items-center"
+          style={{ background: T.ink }}
+          initial={{ opacity: 1 }}
+          exit={{ opacity: 0, transition: { duration: 0.5, ease: EASE } }}
+          aria-hidden
+        >
+          <motion.div
+            className="flex flex-col items-center"
+            initial={{ scale: 0.4, rotate: -120, opacity: 0 }}
+            animate={{ scale: 1, rotate: 0, opacity: 1, transition: { type: 'spring', stiffness: 170, damping: 18 } }}
+            exit={{ scale: 7, opacity: 0, filter: 'blur(12px)', transition: { duration: 0.55, ease: [0.7, 0, 0.84, 0] } }}
+          >
+            <MetalHex size={112} />
+            <motion.span
+              className="mt-5 text-[28px] font-semibold"
+              style={{ letterSpacing: '-0.04em', color: C.fg }}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0, transition: { delay: 0.3, duration: 0.4 } }}
+            >
+              lenar
+            </motion.span>
+          </motion.div>
+        </motion.div>
+      ) : null}
+    </AnimatePresence>
+  )
+}
+
+/** Each line rises out of its own mask, one after another. */
+function RevealLines({ lines, delay = 0 }) {
+  return lines.map((line, i) => (
+    <span key={line} className="block overflow-hidden pb-[0.06em]">
+      <motion.span
+        className="block"
+        initial={{ y: '108%' }}
+        animate={{ y: '0%' }}
+        transition={{ duration: 0.95, delay: delay + i * 0.1, ease: [0.16, 1, 0.3, 1] }}
+      >
+        {line}
+      </motion.span>
+    </span>
+  ))
 }
 
 /* ---------- 1. the first screen ---------- */
@@ -276,14 +341,30 @@ function PortTile({ models, markRef, hideMark }) {
             const a = (i / fams.length) * 360
             return (
               <span key={f.id} className="absolute left-0 top-0" style={{ transform: `rotate(${a}deg) translateX(var(--orbit)) rotate(${-a}deg)` }}>
-                <span className="lb-counter block -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full px-3 py-1 text-[13px]" style={{ background: T.tile3, color: C.fg }}>
-                  {f.short}
+                <span className="lb-counter block">
+                  <motion.span
+                    className="block -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full px-3 py-1 text-[13px]"
+                    style={{ background: T.tile3, color: C.fg }}
+                    initial={{ opacity: 0, scale: 0.3 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 260, damping: 20, delay: HERO_DELAY + 0.55 + i * 0.06 }}
+                  >
+                    {f.short}
+                  </motion.span>
                 </span>
               </span>
             )
           })}
         </div>
-        <div ref={markRef} className="scale-[0.8] sm:scale-100" style={hideMark ? { visibility: 'hidden' } : undefined}><MetalMark size={150} /></div>
+        <div ref={markRef} className="scale-[0.8] sm:scale-100" style={hideMark ? { visibility: 'hidden' } : undefined}>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.4, rotate: -150 }}
+            animate={{ opacity: 1, scale: 1, rotate: 0 }}
+            transition={{ type: 'spring', stiffness: 120, damping: 16, delay: HERO_DELAY + 0.3 }}
+          >
+            <MetalMark size={150} />
+          </motion.div>
+        </div>
       </div>
       <p className="relative z-10 text-[15px]" style={{ color: C.dim }}>Every family routes through one key. Click the mark.</p>
     </div>
@@ -292,34 +373,51 @@ function PortTile({ models, markRef, hideMark }) {
 
 function Hero({ models, live, onPick, markRef, hideMark }) {
   const [index, setIndex] = useState(0)
+  // The terrain starts above the tile and pours down into place.
+  const pour = useMotionValue(PLAYS_INTRO || HERO_DELAY > 0 ? -0.55 : 0)
+  useEffect(() => {
+    const c = animate(pour, 0, { duration: 1.8, delay: HERO_DELAY, ease: [0.16, 1, 0.3, 1] })
+    return () => c.stop()
+  }, [pour])
   const cheapest = useMemo(() => [...models].filter((m) => m.status === 'up').sort((a, b) => a.price - b.price)[0] ?? models[0], [models])
   return (
     <section className={cn(BOARD, 'pt-2')}>
       <div className="grid grid-cols-1 gap-2 md:grid-cols-12 lg:h-[calc(100svh-80px)] lg:max-h-[880px] lg:min-h-[660px] lg:grid-rows-6">
         {/* statement */}
-        <Tile className="flex min-h-[520px] flex-col justify-end md:col-span-12 lg:col-span-8 lg:row-span-4 lg:min-h-0" i={0}>
-          <div className="absolute inset-x-0 top-0 h-[78%] opacity-60"><AsciiField depth={0.42} /></div>
+        <Tile className="flex min-h-[520px] flex-col justify-end md:col-span-12 lg:col-span-8 lg:row-span-4 lg:min-h-0" i={0} base={HERO_DELAY - 0.05}>
+          <div className="absolute inset-x-0 top-0 h-[78%] opacity-60"><AsciiField depth={0.42} flood={pour} /></div>
           <div className="relative z-10 p-6 sm:p-9">
             <h1 className="font-medium" style={{ fontSize: 'clamp(52px, 7.6vw, 120px)', lineHeight: 0.92, letterSpacing: '-0.05em', color: C.fg }}>
-              One key.<br />Every model.
+              <RevealLines lines={['One key.', 'Every model.']} delay={HERO_DELAY + 0.12} />
             </h1>
-            <p className="mt-6 max-w-[34ch]" style={{ fontSize: 'clamp(19px, 1.6vw, 23px)', lineHeight: 1.4, color: C.fg }}>
+            <motion.p
+              className="mt-6 max-w-[34ch]"
+              style={{ fontSize: 'clamp(19px, 1.6vw, 23px)', lineHeight: 1.4, color: C.fg }}
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: HERO_DELAY + 0.4, ease: EASE }}
+            >
               {models.length} AI models behind one OpenAI-compatible endpoint. Pay per token from $10, by card or crypto.
-            </p>
-            <div className="mt-8 flex flex-wrap items-center gap-3">
+            </motion.p>
+            <motion.div
+              className="mt-8 flex flex-wrap items-center gap-3"
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: HERO_DELAY + 0.52, ease: EASE }}
+            >
               <PrimaryButton to="/signup" tone="copper">Get your key</PrimaryButton>
               <PrimaryButton href="#models" tone="ghost">See live prices</PrimaryButton>
-            </div>
+            </motion.div>
           </div>
         </Tile>
 
         {/* the port */}
-        <Tile className="md:col-span-12 lg:col-span-4 lg:row-span-4" i={1} style={{ background: T.tile2 }}>
+        <Tile className="md:col-span-12 lg:col-span-4 lg:row-span-4" i={1} base={HERO_DELAY - 0.05} style={{ background: T.tile2 }}>
           <PortTile models={models} markRef={markRef} hideMark={hideMark} />
         </Tile>
 
         {/* the live request, with the cheapest model and how to pay folded in */}
-        <Tile className="md:col-span-12 lg:row-span-2" i={2}>
+        <Tile className="md:col-span-12 lg:row-span-2" i={3} base={HERO_DELAY - 0.05}>
           <LiveRequest models={models} index={index} setIndex={setIndex} cheapest={cheapest} onPick={onPick} />
         </Tile>
       </div>
@@ -1392,7 +1490,7 @@ export const BOARD_STYLES = `
 .lb-spin-slow { animation: lb-spin 24s linear infinite }
 .lb-row { transition: background-color 200ms }
 .lb-row:hover { background-color: #1c1915 !important }
-:root { --orbit: 112px; --h0: 300px; --h1: 370px; --h2: 450px; --h3: 530px }
+:root { --orbit: 100px; --h0: 300px; --h1: 370px; --h2: 450px; --h3: 530px }
 @media (min-width: 640px) { :root { --orbit: 132px } }
 @media (min-width: 1280px) { :root { --orbit: 150px } }
 @media (max-width: 1023px) { :root { --h0: auto; --h1: auto; --h2: auto; --h3: auto } }
@@ -1412,6 +1510,7 @@ export default function LandingBoard() {
   return (
     <>
       <style>{BOARD_STYLES}</style>
+      <Intro />
       <HeroStage models={models} live={live} onPick={pick} />
       <Marquee models={models} onPick={pick} />
       <ModelBoard models={models} live={live} checkedAt={checkedAt} selected={selected} setSelected={setSelected} />
