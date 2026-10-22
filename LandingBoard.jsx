@@ -182,7 +182,7 @@ function LiveDot({ color = C.up }) {
 }
 
 /** The request your code already sends, with the model swapping under it and its real price beside it. */
-function LiveRequest({ models, index, setIndex }) {
+function LiveRequest({ models, index, setIndex, cheapest, onPick }) {
   const reduce = useReducedMotion()
   const flagships = FLAGSHIPS.map((id) => models.find((m) => m.id === id)).filter(Boolean)
   const m = flagships[index % flagships.length]
@@ -194,7 +194,7 @@ function LiveRequest({ models, index, setIndex }) {
   }, [reduce, paused, flagships.length, setIndex])
   if (!m) return null
   return (
-    <div data-ui className="flex h-full flex-col justify-between gap-5 p-5 sm:p-6" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
+    <div data-ui className="grid h-full gap-6 p-5 sm:p-6 lg:grid-cols-[1.1fr_1fr_0.9fr] lg:items-center lg:gap-10" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
       <pre className="overflow-hidden font-mono text-[14px] leading-[1.7] sm:text-[15px]" style={{ color: 'rgba(243,239,231,0.6)' }}>
         <span>client.chat.completions.create(</span>{'\n'}
         <span>{'  model="'}</span>
@@ -216,9 +216,9 @@ function LiveRequest({ models, index, setIndex }) {
         <span>{'  messages=[...],'}</span>{'\n'}
         <span>)</span>
       </pre>
-      <div className="flex flex-wrap items-end justify-between gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-4 lg:flex-col lg:items-start">
         <div>
-          <p className="text-[13px]" style={{ color: C.dim }}>{m.name} on lenar</p>
+          <p className="text-[14px]" style={{ color: C.dim }}>{m.name} on lenar</p>
           <p className="mt-1 flex items-baseline gap-1.5 font-medium" style={{ fontSize: 30, letterSpacing: '-0.03em', color: C.fg, fontVariantNumeric: 'tabular-nums' }}>
             <span className="inline-flex">$<SlidingNumber number={m.price} decimalPlaces={m.price >= 0.1 ? 3 : 4} /></span>
             <span className="text-[15px] font-normal" style={{ color: C.dim }}>per million tokens</span>
@@ -239,6 +239,21 @@ function LiveRequest({ models, index, setIndex }) {
           ))}
         </div>
       </div>
+      {cheapest ? (
+        <div className="flex flex-col gap-3 border-t pt-5 lg:border-l lg:border-t-0 lg:pl-10 lg:pt-0" style={{ borderColor: 'rgba(243,239,231,0.08)' }}>
+          <button type="button" onClick={() => onPick(cheapest.id)} className="group text-left outline-none focus-visible:underline">
+            <span className="block text-[14px]" style={{ color: C.dim }}>Cheapest model up right now</span>
+            <span className="mt-1 flex items-baseline gap-2">
+              <span className="text-[24px] font-medium tabular-nums" style={{ letterSpacing: '-0.03em', color: C.fg }}>{usd(cheapest.price)}</span>
+              <span className="flex items-center gap-1 text-[15px]" style={{ color: C.fg }}>
+                {cheapest.name}
+                <ArrowUpRight size={15} className="transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" style={{ color: T.copper }} />
+              </span>
+            </span>
+          </button>
+          <p className="text-[14px]" style={{ color: C.dim }}>From $10, by card or crypto. No subscription.</p>
+        </div>
+      ) : null}
     </div>
   )
 }
@@ -299,41 +314,13 @@ function Hero({ models, live, onPick, markRef, hideMark }) {
         </Tile>
 
         {/* the port */}
-        <Tile className="md:col-span-6 lg:col-span-4 lg:row-span-4" i={1} style={{ background: T.tile2 }}>
+        <Tile className="md:col-span-12 lg:col-span-4 lg:row-span-4" i={1} style={{ background: T.tile2 }}>
           <PortTile models={models} markRef={markRef} hideMark={hideMark} />
         </Tile>
 
-        {/* live request */}
-        <Tile className="md:col-span-6 lg:col-span-5 lg:row-span-2" i={2}>
-          <LiveRequest models={models} index={index} setIndex={setIndex} />
-        </Tile>
-
-        {/* cheapest */}
-        <Tile as="button" type="button" onClick={() => onPick(cheapest.id)} className="group flex flex-col justify-between p-5 text-left sm:p-6 md:col-span-6 lg:col-span-4 lg:row-span-2" i={3} style={{ background: T.bone, color: T.ink }}>
-          <p className="text-[15px]" style={{ color: 'rgba(10,9,8,0.65)' }}>Cheapest model up right now</p>
-          <div>
-            <p className="font-medium" style={{ fontSize: 'clamp(38px, 3.6vw, 54px)', lineHeight: 1, letterSpacing: '-0.04em', fontVariantNumeric: 'tabular-nums' }}>
-              {usd(cheapest.price)}<span className="ml-2 text-[16px] font-normal tracking-normal">per M tokens</span>
-            </p>
-            <p className="mt-2 flex items-center gap-1.5 text-[16px]">
-              {cheapest.name}
-              <ArrowUpRight size={16} className="transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-            </p>
-          </div>
-        </Tile>
-
-        {/* action */}
-        <Tile as="div" className="md:col-span-6 lg:col-span-3 lg:row-span-2" i={4} style={{ background: T.copper, color: T.ink }}>
-          <Link to="/signup" className="group flex h-full min-h-[180px] flex-col justify-between p-5 outline-none focus-visible:ring-2 focus-visible:ring-black/40 sm:p-6">
-            <div className="flex items-start justify-between">
-              <p className="text-[15px]">From $10, by card or crypto</p>
-              <HexGlyph className="h-7 w-7 transition-transform duration-700 group-hover:rotate-180" dot={T.copper} />
-            </div>
-            <p className="flex items-end justify-between gap-3 font-medium" style={{ fontSize: 'clamp(30px, 2.8vw, 42px)', lineHeight: 1, letterSpacing: '-0.04em' }}>
-              Get your key
-              <ArrowRight size={34} strokeWidth={2.2} className="shrink-0 transition-transform duration-300 group-hover:translate-x-1.5" />
-            </p>
-          </Link>
+        {/* the live request, with the cheapest model and how to pay folded in */}
+        <Tile className="md:col-span-12 lg:row-span-2" i={2}>
+          <LiveRequest models={models} index={index} setIndex={setIndex} cheapest={cheapest} onPick={onPick} />
         </Tile>
       </div>
     </section>
