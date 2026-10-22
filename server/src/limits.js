@@ -52,3 +52,8 @@ export const forgotLimits = [
 export const tokenLimits = [limiter({ windowMs: 15 * MIN, limit: 20, message: wait('attempts') })]
 // Checkout sessions and key actions: per IP, generous for real people.
 export const actionLimits = [limiter({ windowMs: 15 * MIN, limit: 30, message: wait('requests') })]
+// Emails a signed-in user can trigger for themselves (resend verification, reset link): per user.
+export const userLimits = [rateLimit({
+  windowMs: 60 * MIN, limit: 5, keyGenerator: (req) => `user:${req.userId}`, standardHeaders: 'draft-7', legacyHeaders: false,
+  handler: (req, res) => res.status(429).json({ error: wait('emails') }),
+})]

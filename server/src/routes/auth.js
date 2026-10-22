@@ -5,7 +5,7 @@ import { q } from '../db.js'
 import { signToken, requireAuth } from '../auth.js'
 import { sendVerifyEmail, sendResetEmail } from '../email.js'
 import { siteUrl as SITE_URL } from '../site.js'
-import { loginLimits, signupLimits, forgotLimits, tokenLimits } from '../limits.js'
+import { loginLimits, signupLimits, forgotLimits, tokenLimits, userLimits } from '../limits.js'
 
 const router = Router()
 
@@ -27,7 +27,11 @@ router.post('/signup', signupLimits, async (req, res) => {
      values ($1, $2, $3, now() + interval '24 hours') returning id`,
     [email.toLowerCase(), hash, verifyToken],
   )
-  await sendVerifyEmail(email, `${SITE_URL}/verify?token=${verifyToken}`)
+  try {
+    await sendVerifyEmail(email, `${SITE_URL}/verify?token=${verifyToken}`)
+  } catch (e) {
+    console.error('signup: verification email failed', e)
+  }
   res.json({ token: signToken(rows[0].id) })
 })
 
@@ -59,16 +63,39 @@ router.get('/me', requireAuth, async (req, res) => {
   res.json({ user: rows[0] })
 })
 
+async function sendReset(userId, email) {
+  const resetToken = token()
+  await q(`update users set reset_token = $1, reset_token_expires = now() + interval '1 hour' where id = $2`, [resetToken, userId])
+  await sendResetEmail(email, `${SITE_URL}/reset-password?token=${resetToken}`)
+}
+
 router.post('/forgot-password', forgotLimits, async (req, res) => {
   const { email } = req.body || {}
-  const { rows } = await q('select id from users where email = $1', [String(email || '').toLowerCase()])
+  const { rows } = await q('select id, email from users where email = $1', [String(email || '').toLowerCase()])
   // Always 200 — don't reveal whether an email is registered.
   if (rows.length) {
-    const resetToken = token()
-    await q(`update users set reset_token = $1, reset_token_expires = now() + interval '1 hour' where id = $2`, [resetToken, rows[0].id])
-    await sendResetEmail(email, `${SITE_URL}/reset-password?token=${resetToken}`)
+    try { await sendReset(rows[0].id, rows[0].email) } catch (e) { console.error('forgot-password: email failed', e) }
   }
   res.json({ ok: true })
+})
+
+// Signed in: email a reset link to the account's own address (the dashboard's "Reset password").
+router.post('/send-reset', requireAuth, userLimits, async (req, res) => {
+  const { rows } = await q('select id, email from users where id = $1', [req.userId])
+  if (!rows.length) return res.status(401).json({ error: 'unauthorized' })
+  await sendReset(rows[0].id, rows[0].email)
+  res.json({ ok: true, email: rows[0].email })
+})
+
+// Signed in and not yet verified: send a fresh verification link.
+router.post('/resend-verification', requireAuth, userLimits, async (req, res) => {
+  const { rows } = await q('select id, email, email_verified from users where id = $1', [req.userId])
+  if (!rows.length) return res.status(401).json({ error: 'unauthorized' })
+  if (rows[0].email_verified) return res.json({ ok: true, alreadyVerified: true })
+  const verifyToken = token()
+  await q(`update users set verify_token = $1, verify_token_expires = now() + interval '24 hours' where id = $2`, [verifyToken, rows[0].id])
+  await sendVerifyEmail(rows[0].email, `${SITE_URL}/verify?token=${verifyToken}`)
+  res.json({ ok: true, email: rows[0].email })
 })
 
 router.post('/reset-password', tokenLimits, async (req, res) => {

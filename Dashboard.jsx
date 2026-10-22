@@ -10,7 +10,7 @@ import { Link, NavLink, Navigate, Route, Routes, useLocation, useSearchParams } 
 import { AnimatePresence, motion, useSpring, useTransform } from 'motion/react'
 import {
   Activity, AlertTriangle, ArrowRight, ArrowUpRight, BarChart3, BookOpen, Check, Copy, CreditCard,
-  KeyRound, Layers, LayoutGrid, LifeBuoy, LogOut, Menu, RefreshCw, X,
+  ChevronUp, KeyRound, Layers, LayoutGrid, LifeBuoy, LogOut, Mail, Menu, RefreshCw, X,
 } from 'lucide-react'
 import { STYLES, MetalHex } from './SimpleLanding.jsx'
 import { BOARD_STYLES, ModelBoard, Segmented } from './LandingBoard.jsx'
@@ -824,24 +824,97 @@ function SideLink({ item, onNavigate }) {
   )
 }
 
+/** Sends one account email (verification or password reset) and reports how it went. */
+function useAccountEmail(path) {
+  const [state, setState] = useState({ status: 'idle' }) // idle | sending | sent | error
+  const send = async () => {
+    setState({ status: 'sending' })
+    try {
+      if (!configured) throw new Error('Demo mode: set VITE_API_URL to send real emails.')
+      const r = await api(path, {})
+      setState({ status: 'sent', email: r.email })
+    } catch (e) {
+      setState({ status: 'error', message: e.message })
+    }
+  }
+  return [state, send]
+}
+
+function AccountCard({ email }) {
+  const [open, setOpen] = useState(false)
+  const [reset, sendReset] = useAccountEmail('/auth/send-reset')
+  return (
+    <div className="relative mt-auto">
+      <AnimatePresence>
+        {open ? (
+          <motion.div
+            initial={{ opacity: 0, y: 6, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 6, scale: 0.98 }}
+            transition={{ duration: 0.16 }}
+            className="absolute inset-x-0 bottom-full z-10 mb-2 rounded-[12px] p-1.5 shadow-[0_16px_40px_rgba(0,0,0,0.55)]"
+            style={{ background: D.raised }}
+            role="menu"
+          >
+            <button type="button" role="menuitem" onClick={sendReset} disabled={reset.status === 'sending'} className="flex w-full items-center gap-2.5 rounded-[8px] px-3 py-2.5 text-left text-[14px] transition-colors hover:bg-[#25211d] disabled:opacity-60" style={{ color: D.text }}>
+              <KeyRound size={15} style={{ color: D.muted }} />
+              {reset.status === 'sending' ? 'Sending…' : 'Reset password'}
+            </button>
+            {reset.status === 'sent' ? <p className="px-3 pb-2 text-[13px]" style={{ color: D.positive }}>Reset link sent to {reset.email}.</p> : null}
+            {reset.status === 'error' ? <p className="px-3 pb-2 text-[13px]" style={{ color: D.negative }}>{reset.message}</p> : null}
+            {configured ? (
+              <button type="button" role="menuitem" onClick={() => auth.signOut()} className="flex w-full items-center gap-2.5 rounded-[8px] px-3 py-2.5 text-left text-[14px] transition-colors hover:bg-[#25211d]" style={{ color: D.text }}>
+                <LogOut size={15} style={{ color: D.muted }} /> Sign out
+              </button>
+            ) : null}
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        aria-haspopup="menu"
+        className="flex w-full items-center gap-3 rounded-[12px] px-3 py-3 text-left outline-none transition-colors hover:bg-[#1d1a17] focus-visible:ring-2 focus-visible:ring-[#cd8a4c]"
+        style={{ background: D.surface }}
+      >
+        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-[13px] font-semibold uppercase" style={{ background: '#3a2a1c', color: '#e9c59e' }}>{(email ?? '?')[0]}</span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[13px]" style={{ color: D.text }}>{email}</span>
+          <span className="block text-[12px]" style={{ color: D.faint }}>Account settings</span>
+        </span>
+        <ChevronUp size={15} className="shrink-0 transition-transform duration-200" style={{ color: D.muted, transform: open ? 'none' : 'rotate(180deg)' }} />
+      </button>
+    </div>
+  )
+}
+
+/** Shown until the account's email is confirmed, with a button to send the link again. */
+function VerifyBanner({ email }) {
+  const [state, send] = useAccountEmail('/auth/resend-verification')
+  return (
+    <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} className="mb-5 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-[12px] px-4 py-3 text-[14px]" style={{ background: D.warnBg, color: D.warning }}>
+      <Mail size={16} className="shrink-0" />
+      <span className="min-w-0 flex-1">
+        {state.status === 'sent'
+          ? <>New link sent to <b>{state.email}</b>. Check your inbox and spam folder.</>
+          : <>Confirm your email. We sent a link to <b>{email}</b> when you signed up.</>}
+        {state.status === 'error' ? <span className="block" style={{ color: D.negative }}>{state.message}</span> : null}
+      </span>
+      {state.status !== 'sent' ? (
+        <Btn small variant="secondary" onClick={send} disabled={state.status === 'sending'}>{state.status === 'sending' ? 'Sending…' : 'Resend email'}</Btn>
+      ) : null}
+    </motion.div>
+  )
+}
+
 function SideNav({ email, onNavigate }) {
   return (
     <>
       <nav className="flex flex-col gap-0.5">{NAV.map((n) => <SideLink key={n.to} item={n} onNavigate={onNavigate} />)}</nav>
       <p className="mb-2 mt-8 px-3 text-[13px]" style={{ color: D.faint }}>Resources</p>
       <nav className="flex flex-col gap-0.5">{RESOURCES.map((n) => <SideLink key={n.to} item={n} onNavigate={onNavigate} />)}</nav>
-      <div className="mt-auto flex items-center gap-3 rounded-[12px] px-3 py-3" style={{ background: D.surface }}>
-        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-[13px] font-semibold uppercase" style={{ background: '#3a2a1c', color: '#e9c59e' }}>{(email ?? '?')[0]}</span>
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-[13px]" style={{ color: D.text }}>{email}</span>
-          <span className="block text-[12px]" style={{ color: D.faint }}>Your account</span>
-        </span>
-        {configured ? (
-          <button type="button" onClick={() => auth.signOut()} className="grid h-8 w-8 place-items-center rounded-full transition-colors hover:bg-[#25211d]" aria-label="Sign out" title="Sign out">
-            <LogOut size={15} style={{ color: D.muted }} />
-          </button>
-        ) : null}
-      </div>
+      <AccountCard email={email} />
     </>
   )
 }
@@ -923,6 +996,7 @@ export default function Dashboard() {
 
         <main className="px-4 pb-16 pt-6 sm:px-8 lg:ml-[232px] lg:pt-8">
           <div className="mx-auto max-w-[1120px]">
+            {configured && session?.user && !session.user.email_verified ? <VerifyBanner email={session.user.email} /> : null}
             {acct?.demo ? (
               <p className="mb-5 text-[13px]" style={{ color: D.faint }}>Demo account. Set <code className="font-mono">VITE_API_URL</code> to see a real one.</p>
             ) : null}
