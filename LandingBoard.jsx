@@ -107,7 +107,7 @@ const RAMP = ' .:-=+*#%@'
 const CELL = 8
 const hash = (x, y) => { const n = Math.sin(x * 127.1 + y * 311.7) * 43758.5453; return n - Math.floor(n) }
 
-export function AsciiField({ className, depth = 0.38, color = '#e9d9c3', flood }) {
+export function AsciiField({ className, depth = 0.38, color = '#e9d9c3', flood, flip = false }) {
   const ref = useRef(null)
   const reduce = useReducedMotion()
   useEffect(() => {
@@ -163,11 +163,11 @@ export function AsciiField({ className, depth = 0.38, color = '#e9d9c3', flood }
     ro.observe(canvas)
     const io = new IntersectionObserver(([e]) => { visible = e.isIntersecting })
     io.observe(canvas)
-    const move = (e) => { const r = canvas.getBoundingClientRect(); mouse.x = e.clientX - r.left; mouse.y = e.clientY - r.top }
+    const move = (e) => { const r = canvas.getBoundingClientRect(); mouse.x = e.clientX - r.left; mouse.y = flip ? r.bottom - e.clientY : e.clientY - r.top }
     window.addEventListener('pointermove', move)
     return () => { cancelAnimationFrame(raf); ro.disconnect(); io.disconnect(); window.removeEventListener('pointermove', move) }
-  }, [reduce, depth, color, flood])
-  return <canvas ref={ref} aria-hidden className={cn('pointer-events-none block h-full w-full select-none', className)} />
+  }, [reduce, depth, color, flood, flip])
+  return <canvas ref={ref} aria-hidden className={cn('pointer-events-none block h-full w-full select-none', className)} style={flip ? { transform: 'scaleY(-1)' } : undefined} />
 }
 
 /* ---------- 0. the intro: the mark spins in, then the page zooms out of it ---------- */
@@ -1435,22 +1435,67 @@ function FaqIndex({ models }) {
 
 /* ---------- 8. the close: the action tile, cropped from a longer row ---------- */
 
-function Close() {
+/** The close: no boxes. The mark floats over a terrain that rises as you arrive. */
+function Close({ models }) {
+  const ref = useRef(null)
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end end'] })
+  const rise = useSpring(useTransform(scrollYProgress, [0, 1], [-0.45, 0.12]), { stiffness: 90, damping: 24 })
+  const up = models.filter((m) => m.status === 'up').length
+  const facts = [`${models.length} models, ${up} up now`, 'From $10, card or crypto', 'No subscription']
   return (
-    <section className="overflow-hidden pt-28 sm:pt-40">
-      <div className="grid grid-cols-1 gap-2 px-2 sm:px-3 md:grid-cols-12">
-        <Tile className="hidden h-[360px] md:col-span-2 md:-ml-24 md:block" style={{ background: T.tile2 }}><AsciiField depth={0.9} /></Tile>
-        <Tile i={1} className="flex min-h-[320px] flex-col justify-center p-8 sm:p-10 md:col-span-8 md:h-[360px]" style={{ background: T.copper, color: T.ink }}>
-          <h2 className="font-medium" style={{ fontSize: 'clamp(32px, 3.4vw, 48px)', lineHeight: 1, letterSpacing: '-0.04em' }}>Your key is five minutes away.</h2>
-          <p className="mt-4 max-w-[46ch] text-[17px]">Make an account, top up $10, and call any of the models on this page with the code you already have.</p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <PrimaryButton to="/signup" tone="ink">Create account</PrimaryButton>
-            <PrimaryButton to="/docs" tone="copperDark">Read the docs</PrimaryButton>
-          </div>
-        </Tile>
-        <Tile i={2} className="hidden h-[360px] md:col-span-2 md:-mr-24 md:flex md:items-center md:justify-start md:pl-10" style={{ background: T.bone }}>
-          <HexGlyph className="lb-spin-slow h-24 w-24" color={T.ink} dot={T.copper} />
-        </Tile>
+    <section ref={ref} className="relative overflow-hidden pt-28 sm:pt-40">
+      <div className={cn(BOARD, 'relative z-10 flex flex-col items-center text-center')}>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.6, rotate: -90 }}
+          whileInView={{ opacity: 1, scale: 1, rotate: 0 }}
+          viewport={{ once: true, amount: 0.6 }}
+          transition={{ type: 'spring', stiffness: 120, damping: 16 }}
+          className="relative"
+        >
+          <span className="lb-pulse absolute inset-[18%] rounded-full" />
+          <div className="lb-float"><MetalMark size={112} /></div>
+        </motion.div>
+        <motion.h2
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.6 }}
+          transition={{ duration: 0.8, delay: 0.1, ease: EASE }}
+          className="mt-10 max-w-[14ch] font-medium"
+          style={{ fontSize: 'clamp(44px, 6.4vw, 96px)', lineHeight: 0.95, letterSpacing: '-0.05em', color: C.fg }}
+        >
+          Your key is five minutes away.
+        </motion.h2>
+        <motion.p
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7, delay: 0.2, ease: EASE }}
+          className="mt-6 max-w-[44ch] text-[18px] leading-relaxed"
+          style={{ color: 'rgba(243,239,231,0.78)' }}
+        >
+          Make an account, top up $10, and call any model on this page with the code you already have.
+        </motion.p>
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7, delay: 0.3, ease: EASE }}
+          className="mt-9 flex flex-wrap justify-center gap-3"
+        >
+          <PrimaryButton to="/signup" tone="copper">Create account</PrimaryButton>
+          <PrimaryButton to="/docs" tone="ghost">Read the docs</PrimaryButton>
+        </motion.div>
+        <ul className="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-2 text-[15px]" style={{ color: C.dim }}>
+          {facts.map((f) => (
+            <li key={f} className="flex items-center gap-2">
+              <Check size={15} style={{ color: T.copper }} /> {f}
+            </li>
+          ))}
+        </ul>
+      </div>
+      {/* the terrain rises from the bottom edge as the section scrolls in */}
+      <div className="pointer-events-none relative -mt-6 h-[300px] sm:h-[360px]" style={{ maskImage: 'linear-gradient(to bottom, transparent, black 45%)', WebkitMaskImage: 'linear-gradient(to bottom, transparent, black 45%)' }}>
+        <AsciiField flip depth={0.45} flood={rise} />
       </div>
     </section>
   )
@@ -1488,6 +1533,8 @@ export const BOARD_STYLES = `
 @keyframes lb-pulse { 0% { box-shadow: 0 0 0 0 rgba(205,138,76,0.35) } 100% { box-shadow: 0 0 0 28px rgba(205,138,76,0) } }
 .lb-pulse { animation: lb-pulse 2.4s ease-out infinite }
 .lb-spin-slow { animation: lb-spin 24s linear infinite }
+@keyframes lb-float { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-10px) } }
+.lb-float { animation: lb-float 5s ease-in-out infinite }
 .lb-row { transition: background-color 200ms }
 .lb-row:hover { background-color: #1c1915 !important }
 :root { --orbit: 100px; --h0: 300px; --h1: 370px; --h2: 450px; --h3: 530px }
@@ -1495,7 +1542,7 @@ export const BOARD_STYLES = `
 @media (min-width: 1280px) { :root { --orbit: 150px } }
 @media (max-width: 1023px) { :root { --h0: auto; --h1: auto; --h2: auto; --h3: auto } }
 @media (prefers-reduced-motion: reduce) {
-  .lb-track, .lb-orbit, .lb-counter, .lb-ping, .lb-spin-slow, .lb-nudge, .lb-pulse { animation: none }
+  .lb-track, .lb-orbit, .lb-counter, .lb-ping, .lb-spin-slow, .lb-nudge, .lb-pulse, .lb-float { animation: none }
 }
 `
 
@@ -1518,7 +1565,7 @@ export default function LandingBoard() {
       <Workflow models={models} />
       <Features models={models} selected={selected} />
       <FaqIndex models={models} />
-      <Close />
+      <Close models={models} />
     </>
   )
 }
