@@ -1,9 +1,9 @@
 // The landing page, built as one board of tiles: everything worth knowing is on the first
 // screens, and almost every tile does something when you touch it. Prices come from the live
 // catalog (models.js), so every number here is a real rate.
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { AnimatePresence, LayoutGroup, motion, useInView, useMotionTemplate, useMotionValue, useReducedMotion, useScroll, useSpring, useTransform } from 'motion/react'
+import { AnimatePresence, LayoutGroup, motion, useInView, useMotionTemplate, useMotionValue, useMotionValueEvent, useReducedMotion, useScroll, useSpring, useTransform } from 'motion/react'
 import { ArrowRight, ArrowUpRight, Check, Copy, Search, RefreshCw, Eye } from 'lucide-react'
 import { SlidingNumber } from '@animate-ui/react/primitives/texts/sliding-number'
 import { Tilt, TiltContent } from '@animate-ui/react/primitives/effects/tilt'
@@ -433,22 +433,41 @@ function PinnedHero({ models, live, onPick, withHero = true }) {
   // Where the mark sits in its tile, relative to the middle of the stage.
   const dx = useMotionValue(0)
   const dy = useMotionValue(0)
+  // Measured from layout (offsetLeft/Top), not getBoundingClientRect, so the tiles' entrance and
+  // the hero's own scroll transform can't skew it. Re-measured on resize and whenever the page is
+  // back at the top, so the mark always flies home to the right spot.
   const [ready, setReady] = useState(!withHero)
+  const measure = useCallback(() => {
+    const stage = stageRef.current
+    let el = markRef.current
+    if (!stage || !el) return
+    let x = el.offsetWidth / 2
+    let y = el.offsetHeight / 2
+    while (el && el !== stage) {
+      x += el.offsetLeft
+      y += el.offsetTop
+      el = el.offsetParent
+    }
+    if (el !== stage) return
+    dx.set(x - stage.clientWidth / 2)
+    dy.set(y - stage.clientHeight / 2)
+    setReady(true)
+  }, [dx, dy])
   useEffect(() => {
     if (!withHero) return
-    const measure = () => {
-      const m = markRef.current?.getBoundingClientRect()
-      const st = stageRef.current?.getBoundingClientRect()
-      if (!m || !st) return
-      dx.set(m.left + m.width / 2 - (st.left + st.width / 2))
-      dy.set(m.top + m.height / 2 - (st.top + st.height / 2))
-      setReady(true)
-    }
-    // The tiles rise in on load; measure once they've settled, and again on resize.
-    const t = setTimeout(measure, 900)
+    measure()
+    document.fonts?.ready.then(measure)
     window.addEventListener('resize', measure)
-    return () => { clearTimeout(t); window.removeEventListener('resize', measure) }
-  }, [dx, dy, withHero])
+    return () => window.removeEventListener('resize', measure)
+  }, [withHero, measure])
+
+  // At rest the tile shows its own mark; the floating copy takes over only once the scroll starts.
+  const [lifted, setLifted] = useState(false)
+  useMotionValueEvent(p, 'change', (v) => {
+    const l = v > 0.015
+    setLifted((cur) => (cur === l ? cur : l))
+    if (withHero && v < 0.005) measure()
+  })
 
   // 1. The board lifts away.
   const heroOpacity = useTransform(p, [0, 0.22], [1, 0])
@@ -490,12 +509,12 @@ function PinnedHero({ models, live, onPick, withHero = true }) {
 
         {withHero ? (
           <motion.div style={{ opacity: heroOpacity, y: heroY, scale: heroScale, filter: heroFilter, pointerEvents: heroPointer }}>
-            <Hero models={models} live={live} onPick={onPick} markRef={markRef} hideMark={ready} />
+            <Hero models={models} live={live} onPick={onPick} markRef={markRef} hideMark={ready && lifted} />
           </motion.div>
         ) : null}
 
         {/* the mark, lifted out of its tile */}
-        <motion.div className="absolute left-1/2 top-1/2" style={{ x: markX, y: markY, opacity: ready ? markOpacity : 0 }}>
+        <motion.div className="absolute left-1/2 top-1/2" style={{ x: markX, y: markY, opacity: ready && (lifted || !withHero) ? markOpacity : 0 }}>
           <motion.div className="-translate-x-1/2 -translate-y-1/2" style={{ rotate: markRotate, scale: markScale, filter: markFilter }}>
             <motion.div className="pointer-events-none absolute -inset-24 rounded-full" style={{ opacity: glow, background: 'radial-gradient(50% 50% at 50% 50%, #cd8a4c, transparent 70%)' }} />
             <MetalMark size={withHero ? 150 : 110} />
