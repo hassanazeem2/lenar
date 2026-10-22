@@ -1,16 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import {
-  Activity, ArrowRight, BarChart3, Check, ChevronRight, Copy, Gauge, KeyRound,
-  Layers, LayoutTemplate, Plus, RefreshCw, Route, ShieldCheck, Sparkles, Tag, Zap,
-} from 'lucide-react'
-import { CATALOG, FAMILY_ORDER, MODEL_COUNT, PROVIDER_COUNT } from './models.js'
-import { API_BASE, useSession } from './src/lib/api.js'
-import { Accordion, AccordionItem, AccordionTrigger, AccordionContent, Tabs, Tip, TooltipProvider } from './src/ui.jsx'
-import { Tabs as TabsP } from '@animate-ui/react/primitives/radix-ui'
+import { ArrowRight, Check, ChevronRight, Copy } from 'lucide-react'
+import { useSession } from './src/lib/api.js'
 import { motion, useReducedMotion } from 'motion/react'
-import HeroScroll from './HeroScroll.jsx'
-import { ScrollIn, ScrollTitle, ScrollProgress, RisingFooterArt } from './src/scroll.jsx'
+import LandingBoard from './LandingBoard.jsx'
+import { ScrollProgress } from './src/scroll.jsx'
+import { Magnetic } from '@animate-ui/react/primitives/effects/magnetic'
 
 export const cn = (...c) => c.filter(Boolean).join(' ')
 
@@ -29,76 +24,8 @@ export const C = {
 
 // A hex socket, not a crystal: the mark is a port, because lenar is one. Every
 // model's name routes into it elsewhere on the page.
-const MARK_VB = '0 0 100 100'
-const MARK_D = 'M50 4 L89.84 27 L89.84 73 L50 96 L10.16 73 L10.16 27 Z'
-
-const MODELS = MODEL_COUNT
-
-const SDK_TABS = [
-  {
-    label: 'OpenAI · Python',
-    icon: Zap,
-    lang: 'python',
-    copy: `from openai import OpenAI
-client = OpenAI(
-    base_url="${API_BASE}",
-    api_key="sk-lenar-...",
-)`,
-  },
-  {
-    label: 'Anthropic · TS',
-    icon: Layers,
-    lang: 'typescript',
-    copy: `import Anthropic from "@anthropic-ai/sdk";
-const client = new Anthropic({
-  baseURL: "${API_BASE}",
-  apiKey: "sk-lenar-...",
-});`,
-  },
-  {
-    label: 'Gemini · Python',
-    icon: Sparkles,
-    lang: 'python',
-    copy: `from google import genai
-client = genai.Client(
-    api_key="sk-lenar-...",
-    http_options={"base_url": "${API_BASE}"},
-)`,
-  },
-  {
-    label: 'cURL',
-    icon: Activity,
-    lang: 'bash',
-    copy: `curl ${API_BASE}/chat/completions \\
-  -H "Authorization: Bearer sk-lenar-..." \\
-  -H "Content-Type: application/json" \\
-  -d '{"model":"gpt-4o","messages":[{"role":"user","content":"Hi"}]}'`,
-  },
-]
-
-const SCREENS = [
-  { slug: 'usage-overview', label: 'Usage overview' },
-  { slug: 'model-breakdown', label: 'Model breakdown' },
-  { slug: 'keys-table', label: 'API keys' },
-  { slug: 'live-status', label: 'Live status' },
-]
-
-const FEATURES = [
-  { icon: Zap, title: 'One endpoint', body: 'Same request shape across every provider. Point your existing SDK at Lenar and keep shipping.' },
-  { icon: Tag, title: 'Real usage billing', body: 'Token-level cost, not a flat-rate guess. See exactly what each call burned.' },
-  { icon: KeyRound, title: 'Per-key limits', body: 'Rate limits and model allowlists per customer key, enforced at the edge.' },
-  { icon: RefreshCw, title: 'Automatic failover', body: 'A dead upstream doesn\'t take you down. We route around outages without a deploy.' },
-  { icon: Activity, title: 'Live model status', body: 'Uptime and latency per model, not a promise. Watch health before your users feel it.' },
-  { icon: Gauge, title: 'Your own pricing', body: 'Set markup per model, white-label the name, and bill your customers on your terms.' },
-  { icon: ShieldCheck, title: 'Nothing retained', body: 'Requests pass straight through to the model and back. No prompt or response logging in between.' },
-]
-
-const FAQ = [
-  ['Which models do you support?', 'Claude, GPT, Gemini, DeepSeek, GLM, Grok, Kimi, Qwen, and more — eighty models behind one key, with new releases added as they ship.'],
-  ['Is this a drop-in replacement for the official SDKs?', `Yes. Keep the SDK you already use and set base_url to ${API_BASE} with your lenar API key. Request and response shapes stay the same.`],
-  ['How is billing calculated?', 'Per token, per model, at the rate shown on pricing. You see spend and usage live — not a monthly flat guess.'],
-  ['Can I set my own markup / white-label this?', 'Yes. Set markup per model and rename what your customers see. White-label the gateway without forking the stack.'],
-]
+export const MARK_VB = '0 0 100 100'
+export const MARK_D = 'M50 4 L89.84 27 L89.84 73 L50 96 L10.16 73 L10.16 27 Z'
 
 export const SHELL = 'mx-auto w-full max-w-6xl px-6 sm:px-10'
 export const AIR = 'py-28 sm:py-36'
@@ -169,26 +96,6 @@ export function Rise({ children, i = 0, className }) {
       {children}
     </div>
   )
-}
-
-function CountUp({ target }) {
-  const [ref, seen] = useInView()
-  const [v, setV] = useState(target)
-  useEffect(() => {
-    if (!seen || target === 0) return
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
-    let raf
-    const start = performance.now()
-    const tick = (now) => {
-      const t = Math.min((now - start) / 1400, 1)
-      setV(Math.round(target * (t >= 1 ? 1 : 1 - Math.pow(2, -10 * t))))
-      if (t < 1) raf = requestAnimationFrame(tick)
-    }
-    setV(0)
-    raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(raf)
-  }, [seen, target])
-  return <span ref={ref} style={{ fontVariantNumeric: 'tabular-nums' }}>{v}</span>
 }
 
 export function Wordmark({ height = 17 }) {
@@ -364,29 +271,54 @@ export function TextLink({ children, to, href, chevron = true }) {
   return <a href={dest} className={cls} style={style}>{inner}</a>
 }
 
-export function PrimaryButton({ children, small, href, to, className, type, onClick }) {
+/** The lenar hex, small: a port with a dot in it. */
+export function HexGlyph({ className, color = 'currentColor', dot = '#cd8a4c', hole = '#0a0908' }) {
+  return (
+    <svg viewBox={MARK_VB} className={className} aria-hidden>
+      <path d={MARK_D} fill={color} />
+      <circle cx="50" cy="50" r="19" fill={hole} />
+      <circle cx="50" cy="50" r="8" fill={dot} className="lb-hexdot" />
+    </svg>
+  )
+}
+
+const BTN_TONES = {
+  bone: { bg: '#f3efe7', fg: '#0a0908', glyph: '#0a0908', hole: '#f3efe7', dot: '#cd8a4c' },
+  copper: { bg: '#cd8a4c', fg: '#0a0908', glyph: '#0a0908', hole: '#cd8a4c', dot: '#f3efe7' },
+  ghost: { bg: '#27221c', fg: '#f3efe7', glyph: '#f3efe7', hole: '#27221c', dot: '#cd8a4c' },
+  ink: { bg: '#0a0908', fg: '#f3efe7', glyph: '#cd8a4c', hole: '#0a0908', dot: '#f3efe7' },
+  copperDark: { bg: '#b57438', fg: '#0a0908', glyph: '#0a0908', hole: '#b57438', dot: '#f3efe7' },
+}
+
+/**
+ * lenar's button: a flat pill with the hex port at its head. The hex turns, its dot swells,
+ * the label rolls over to a second copy, the whole thing leans toward the cursor and
+ * presses in on click.
+ */
+export function PrimaryButton({ children, small, href, to, className, type, onClick, tone = 'bone' }) {
+  const t = BTN_TONES[tone] ?? BTN_TONES.bone
   const dest = to ?? href
   const cls = cn(
-    'inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-opacity hover:opacity-90',
-    small ? 'px-3.5 py-2 text-sm' : 'px-5 py-3 text-sm',
+    'lb-btn group relative inline-flex select-none items-center rounded-full font-medium outline-none transition-transform duration-150 active:scale-[0.96] focus-visible:ring-2 focus-visible:ring-[#cd8a4c] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0908]',
+    small ? 'gap-2 py-2 pl-2.5 pr-4 text-[14px]' : 'gap-2.5 py-3 pl-3.5 pr-5 text-[16px]',
     className,
   )
-  const style = { background: C.fg, color: C.bg }
-  if (type === 'submit' || type === 'button' || onClick) {
-    return (
-      <button type={type || 'button'} onClick={onClick} className={cls} style={style}>
-        {children}
-      </button>
-    )
-  }
-  if (dest && dest.startsWith('/')) {
-    return <Link to={dest} className={cls} style={style}>{children}</Link>
-  }
-  return (
-    <a href={dest || '#'} className={cls} style={style}>
-      {children}
-    </a>
+  const style = { background: t.bg, color: t.fg }
+  const inner = (
+    <>
+      <HexGlyph className={cn('shrink-0 transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:rotate-[240deg]', small ? 'h-4 w-4' : 'h-5 w-5')} color={t.glyph} hole={t.hole} dot={t.dot} />
+      <span className="lb-roll"><span>{children}</span><span aria-hidden>{children}</span></span>
+    </>
   )
+  let el
+  if (type === 'submit' || type === 'button' || onClick) {
+    el = <button type={type || 'button'} onClick={onClick} className={cls} style={style}>{inner}</button>
+  } else if (dest && dest.startsWith('/')) {
+    el = <Link to={dest} className={cls} style={style}>{inner}</Link>
+  } else {
+    el = <a href={dest || '#'} className={cls} style={style}>{inner}</a>
+  }
+  return <Magnetic strength={0.22} range={110} onlyOnHover disableOnTouch className="inline-block">{el}</Magnetic>
 }
 
 const NAV = [
@@ -396,15 +328,15 @@ const NAV = [
   { label: 'Status', to: '/status' },
 ]
 
-export function Nav() {
+export function Nav({ wide = false }) {
   const { pathname } = useLocation()
   const session = useSession()
   const [hover, setHover] = useState(null)
   const current = NAV.find((n) => n.to === pathname)?.to
   const pill = hover ?? current
   return (
-    <header className="sticky top-0 z-50 border-b backdrop-blur-xl" style={{ borderColor: C.line, background: 'rgba(8,9,10,0.8)' }}>
-      <div className={cn(SHELL, 'flex h-16 items-center gap-8')}>
+    <header className="sticky top-0 z-50 backdrop-blur-xl" style={{ boxShadow: wide ? 'none' : `inset 0 -1px 0 ${C.line}`, background: 'rgba(10,9,8,0.82)' }}>
+      <div className={cn(wide ? 'mx-auto w-full max-w-[1480px] px-4 sm:px-5' : SHELL, 'flex h-16 items-center gap-8')}>
         <Link to="/" className="shrink-0"><Wordmark /></Link>
         <nav className="ml-auto hidden items-center gap-1 md:flex" onMouseLeave={() => setHover(null)}>
           {NAV.map((n) => (
@@ -477,591 +409,50 @@ export function SectionIcon({ icon: Icon }) {
   )
 }
 
-function SdkCode({ code }) {
-  return (
-    <pre className="overflow-x-auto px-4 py-5 text-left font-mono text-xs leading-relaxed sm:text-sm" style={{ color: 'rgba(244,245,246,0.7)' }}>
-      {code.split('\n').map((line, i) => (
-        <span key={i}>
-          {line.includes(API_BASE) || line.includes('sk-lenar') ? (
-            <>
-              {line.split(new RegExp(`(${API_BASE.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}|sk-lenar-\\.\\.\\.)`, 'g')).map((part, j) => (
-                <span key={j} style={part === API_BASE || part.startsWith('sk-lenar') ? { color: C.fg } : undefined}>{part}</span>
-              ))}
-            </>
-          ) : (
-            <span style={line.trim().startsWith('#') || line.trim().startsWith('//') ? { color: C.faint } : undefined}>{line}</span>
-          )}
-          {'\n'}
-        </span>
-      ))}
-    </pre>
-  )
-}
-
-/* ---------- routing: how a request actually gets to a model ---------- */
-
-const ROUTE_STEPS = [
-  { n: '01', title: 'Send the request', body: 'Point your existing SDK at the lenar base URL and keep the request shaped exactly how it already is.' },
-  { n: '02', title: 'We pick the model', body: 'Your model name routes to whichever upstream is live and fastest right now. If one drops mid-request, we fail over without you noticing.' },
-  { n: '03', title: 'You pay per token', body: 'Spend is metered at the token, not estimated. See exactly what each call cost, cache hits included.' },
-]
-
-function RoutingDiagram() {
-  const reduce = useReducedMotion()
-  const W = 520, H = 272
-  const portX = 462, portY = 136
-  const rows = FAMILY_ORDER.length
-  const topPad = 16
-  const step = (H - topPad * 2) / (rows - 1)
-  return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full overflow-visible" role="img" aria-label="Every model family routing through one lenar key">
-      <defs>
-        <radialGradient id="rd-port" cx="50%" cy="50%" r="50%">
-          <stop offset="0" stopColor={C.accent} stopOpacity="0.4" />
-          <stop offset="1" stopColor={C.accent} stopOpacity="0" />
-        </radialGradient>
-      </defs>
-      {FAMILY_ORDER.map((f, i) => {
-        const y = topPad + i * step
-        const d = `M150 ${y} C 290 ${y} 300 ${portY} ${portX - 24} ${portY}`
-        return (
-          <g key={f.id}>
-            <path d={d} fill="none" stroke={C.line2} strokeWidth="1.5" />
-            {!reduce && (
-              <motion.path
-                d={d} fill="none" stroke={C.accent} strokeWidth="1.5" strokeLinecap="round"
-                initial={{ pathLength: 0, opacity: 0 }}
-                whileInView={{ pathLength: 1, opacity: 0.9 }}
-                viewport={{ once: true, amount: 0.4 }}
-                transition={{ duration: 1, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] }}
-              />
-            )}
-            <rect x="2" y={y - 13} width="148" height="26" rx="8" fill={C.card} stroke={C.line2} />
-            <text x="16" y={y + 4} fontSize="11" fill={C.fg} fontFamily="'IBM Plex Mono', ui-monospace, monospace">{f.label.replace(' Models', '')}</text>
-            <circle cx="150" cy={y} r="2.5" fill={C.accent} />
-          </g>
-        )
-      })}
-      <TooltipProvider>
-        <Tip content="Live routing — fails over without a deploy">
-          <g style={{ cursor: 'pointer' }}>
-            <circle cx={portX} cy={portY} r="34" fill="url(#rd-port)" />
-            <circle cx={portX} cy={portY} r="23" fill={C.bg} stroke={C.line2} strokeWidth="1.5" />
-            <circle cx={portX} cy={portY} r="7" fill={C.accent} />
-          </g>
-        </Tip>
-      </TooltipProvider>
-      <text x={portX} y={portY + 48} textAnchor="middle" fontSize="11.5" fill={C.dim} fontFamily="'IBM Plex Mono', ui-monospace, monospace">one key</text>
-    </svg>
-  )
-}
-
-function RoutingShowcase() {
-  return (
-    <section className={cn(SHELL, AIR)}>
-      <div className="text-center">
-        <SectionIcon icon={Route} />
-        <ScrollTitle lead="How it reaches" claim="a model" />
-      </div>
-      <div className="mt-16 grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
-        <ScrollIn className="order-2 lg:order-1">
-          <ol className="space-y-8">
-            {ROUTE_STEPS.map((s) => (
-              <li key={s.n} className="flex gap-5">
-                <span className="shrink-0 font-mono text-sm" style={{ color: C.accent, paddingTop: 2 }}>{s.n}</span>
-                <div>
-                  <h3 className="font-medium" style={{ fontSize: 15.5, color: C.fg }}>{s.title}</h3>
-                  <p className="mt-1.5 text-sm leading-relaxed" style={{ color: C.dim, maxWidth: 46 + 'ch' }}>{s.body}</p>
-                </div>
-              </li>
-            ))}
-          </ol>
-        </ScrollIn>
-        <ScrollIn i={1} tilt className="order-1 lg:order-2">
-          <GlassFrame className="p-4 sm:p-5">
-            <RoutingDiagram />
-          </GlassFrame>
-        </ScrollIn>
-      </div>
-    </section>
-  )
-}
-
-function SdkSwitcher() {
-  return (
-    <section id="models" className={cn(SHELL, AIR, 'text-center')}>
-      <SectionIcon icon={Layers} />
-      <ScrollTitle lead="Switch providers," claim="not code" />
-      <Tabs defaultValue={SDK_TABS[0].label}>
-        <ScrollIn>
-          <TabsP.List className="relative mx-auto mt-14 flex w-max max-w-full flex-wrap items-start justify-center gap-2">
-            {SDK_TABS.map((c) => {
-              const Icon = c.icon
-              return (
-                <TabsP.Trigger
-                  key={c.label}
-                  value={c.label}
-                  className="group relative z-10 flex w-24 flex-col items-center gap-2 rounded-2xl py-2 outline-none transition-colors data-[state=active]:bg-white/[0.06] sm:w-28"
-                >
-                  <span className="grid h-12 w-12 place-items-center rounded-xl border border-white/[0.14] text-white/45 transition-all duration-300 group-hover:text-white/80 group-focus-visible:ring-2 group-focus-visible:ring-white/30 group-data-[state=active]:border-white/25 group-data-[state=active]:text-white">
-                    <Icon size={20} strokeWidth={1.75} />
-                  </span>
-                  <span className="text-xs leading-tight text-white/30 transition-colors group-data-[state=active]:text-white">{c.label}</span>
-                </TabsP.Trigger>
-              )
-            })}
-          </TabsP.List>
-        </ScrollIn>
-        <ScrollIn tilt i={1}>
-          <GlassFrame className="mx-auto mt-14 max-w-3xl">
-            {SDK_TABS.map((c) => (
-              <TabsP.Content key={c.label} value={c.label}>
-                <div className="flex items-center gap-2 border-b px-4 py-2.5 text-left" style={{ borderColor: C.line }}>
-                  <span className="rounded-md px-2 py-1 text-xs" style={{ background: 'rgba(244,245,246,0.07)', color: 'rgba(244,245,246,0.85)' }}>{c.label}</span>
-                  <span className="text-xs" style={{ color: C.faint }}>base_url + api_key</span>
-                  <CopyLine text={c.copy} />
-                </div>
-                <SdkCode code={c.copy} />
-              </TabsP.Content>
-            ))}
-          </GlassFrame>
-        </ScrollIn>
-        <ScrollIn i={2}>
-          <p className="mx-auto mt-6 max-w-md text-sm" style={{ color: C.faint }}>
-            Already on OpenRouter or calling providers directly? Switching is two lines — your <code className="rounded px-1 py-0.5" style={{ background: C.card, color: C.dim }}>base_url</code> and your key. The request shape doesn't change.
-          </p>
-        </ScrollIn>
-      </Tabs>
-    </section>
-  )
-}
-
-/* ---------- what you'd save ---------- */
-
-const CALC_PRESETS = [250, 1000, 5000, 20000]
-const AVG_DISCOUNT = Math.round(CATALOG.reduce((s, m) => s + m.discount, 0) / CATALOG.length)
-const money0 = (v) => `$${Math.round(v).toLocaleString('en-US')}`
-
-function SavingsCalculator() {
-  const [spend, setSpend] = useState(1000)
-  const saved = Math.max(0, spend * (AVG_DISCOUNT / 100))
-  const after = spend - saved
-
-  return (
-    <section className={cn(SHELL, AIR)}>
-      <div className="text-center">
-        <SectionIcon icon={Tag} />
-        <ScrollTitle lead="What you'd" claim="save" />
-      </div>
-      <ScrollIn>
-        <div className="mx-auto mt-14 max-w-xl rounded-2xl border p-7 sm:p-9" style={{ borderColor: C.line, background: C.card }}>
-          <label htmlFor="calc-spend" className="text-xs uppercase tracking-wide" style={{ color: C.faint, letterSpacing: '0.08em' }}>
-            Your monthly model spend today
-          </label>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-2xl" style={{ color: C.faint }}>$</span>
-            <input
-              id="calc-spend"
-              type="number"
-              min={0}
-              max={200000}
-              value={spend}
-              onChange={(e) => setSpend(Math.max(0, Math.min(200000, Number(e.target.value) || 0)))}
-              className="w-full bg-transparent font-mono outline-none"
-              style={{ fontSize: 'clamp(28px, 5vw, 40px)', color: C.fg, fontVariantNumeric: 'tabular-nums' }}
-            />
-          </div>
-          <input
-            type="range"
-            min={50}
-            max={20000}
-            step={50}
-            value={Math.min(spend, 20000)}
-            onChange={(e) => setSpend(Number(e.target.value))}
-            className="calc-range mt-5 w-full"
-            aria-label="Monthly spend slider"
-            style={{ accentColor: C.accent }}
-          />
-          <div className="mt-2 flex justify-between">
-            {CALC_PRESETS.map((p) => (
-              <button
-                key={p}
-                type="button"
-                onClick={() => setSpend(p)}
-                className="rounded-md px-2 py-1 text-xs transition-colors hover:text-white"
-                style={{ color: spend === p ? C.fg : C.faint, background: spend === p ? C.card : 'transparent' }}
-              >
-                {money0(p)}/mo
-              </button>
-            ))}
-          </div>
-
-          <div className="mt-8 grid grid-cols-2 gap-4 border-t pt-6" style={{ borderColor: C.line }}>
-            <div>
-              <p className="text-xs" style={{ color: C.faint }}>With lenar</p>
-              <p className="mt-1 font-medium" style={{ fontSize: 26, color: C.fg, fontVariantNumeric: 'tabular-nums' }}>{money0(after)}</p>
-            </div>
-            <div>
-              <p className="text-xs" style={{ color: C.faint }}>Back in your pocket</p>
-              <p className="mt-1 font-medium" style={{ fontSize: 26, color: C.up, fontVariantNumeric: 'tabular-nums' }}>{money0(saved)}</p>
-            </div>
-          </div>
-          <p className="mt-5 text-xs leading-relaxed" style={{ color: C.faint }}>
-            Based on today's average discount across all {CATALOG.length} models ({AVG_DISCOUNT}% below official pricing). Your exact savings depend on which models you call — see <Link to="/pricing" className="underline hover:text-white" style={{ color: C.dim }}>full pricing</Link>.
-          </p>
-        </div>
-      </ScrollIn>
-    </section>
-  )
-}
-
-function Features() {
-  return (
-    <section className={cn(SHELL, AIR)}>
-      <div className="text-center">
-        <ScrollTitle lead="Built for teams" claim="that ship on models" />
-      </div>
-      <div className="mt-16 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {FEATURES.map((f, i) => {
-          const Icon = f.icon
-          return (
-            <ScrollIn key={f.title} i={i % 3}>
-              <div className="h-full rounded-2xl border p-6 transition-all duration-300 hover:-translate-y-0.5 hover:border-white/15 hover:bg-white/5" style={{ borderColor: C.line, background: C.card }}>
-                <span className="grid h-9 w-9 place-items-center rounded-lg border" style={{ borderColor: 'rgba(244,245,246,0.09)', color: 'rgba(244,245,246,0.7)' }}>
-                  <Icon size={18} strokeWidth={1.75} />
-                </span>
-                <h3 className="mt-4 font-medium" style={{ fontSize: 15, color: 'rgba(244,245,246,0.9)' }}>{f.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed" style={{ color: C.dim }}>{f.body}</p>
-              </div>
-            </ScrollIn>
-          )
-        })}
-      </div>
-    </section>
-  )
-}
-
-function Numbers({ models, uptime, requests, providers }) {
-  const stats = [
-    { n: models, l: 'models supported' },
-    { n: uptime, l: 'avg uptime %' },
-    { n: requests, l: 'M requests routed daily' },
-    { n: providers, l: 'providers behind the scenes' },
-  ]
-  return (
-    <section className={cn(SHELL, 'pb-10')}>
-      <ScrollIn>
-        <div className="grid grid-cols-2 gap-y-8 rounded-2xl border px-6 py-10 text-center sm:grid-cols-4" style={{ borderColor: C.line, background: C.card }}>
-          {stats.map((s) => (
-            <div key={s.l}>
-              <div className="font-medium" style={{ fontSize: 34, letterSpacing: '-0.03em', color: C.fg }}>
-                <CountUp target={s.n} />
-              </div>
-              <div className="mt-1 text-xs" style={{ color: 'rgba(244,245,246,0.4)' }}>{s.l}</div>
-            </div>
-          ))}
-        </div>
-      </ScrollIn>
-    </section>
-  )
-}
-
-function ScreenChrome({ title, children }) {
-  return (
-    <div className="flex flex-col" style={{ aspectRatio: '16 / 10', maxWidth: '100%' }}>
-      <div className="flex items-center gap-2 border-b px-4 py-2.5" style={{ borderColor: C.line }}>
-        <span className="h-2 w-2 rounded-full" style={{ background: 'rgba(244,245,246,0.16)' }} />
-        <span className="h-2 w-2 rounded-full" style={{ background: 'rgba(244,245,246,0.11)' }} />
-        <span className="h-2 w-2 rounded-full" style={{ background: 'rgba(244,245,246,0.08)' }} />
-        <span className="ml-3 truncate text-xs" style={{ color: C.faint }}>{title}</span>
-      </div>
-      <div className="min-h-0 flex-1 overflow-hidden p-4 sm:p-5">{children}</div>
-    </div>
-  )
-}
-
-export const Mini = ({ label, value, delta, up = true }) => (
-  <div className="rounded-lg border p-3" style={{ borderColor: C.line, background: C.card }}>
-    <div className="text-xs uppercase tracking-wider" style={{ color: C.faint, fontSize: 10 }}>{label}</div>
-    <div className="mt-1 font-medium" style={{ fontSize: 17, fontVariantNumeric: 'tabular-nums' }}>{value}</div>
-    {delta && <div className="text-xs" style={{ color: up ? C.up : C.down, fontVariantNumeric: 'tabular-nums' }}>{delta}</div>}
-  </div>
-)
-
-const SERIES = [42, 44, 43, 47, 46, 51, 49, 53, 57, 55, 58, 62, 60, 64, 67, 65, 69, 72, 70, 74]
-
-function LineChart({ data = SERIES, color = C.accent }) {
-  const w = 600
-  const h = 160
-  const min = Math.min(...data) - 4
-  const max = Math.max(...data) + 4
-  const pts = data.map((v, i) => [(i / (data.length - 1)) * w, h - ((v - min) / (max - min)) * h])
-  const d = pts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(' ')
-  const last = pts[pts.length - 1]
-  return (
-    <svg viewBox={`0 0 ${w} ${h + 4}`} className="h-full w-full" preserveAspectRatio="none">
-      <defs>
-        <linearGradient id="lc-area" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor={color} stopOpacity="0.25" />
-          <stop offset="1" stopColor={color} stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      {[0.25, 0.5, 0.75].map((t) => (
-        <line key={t} x1="0" x2={w} y1={h * t} y2={h * t} stroke="rgba(244,245,246,0.06)" strokeDasharray="3 5" />
-      ))}
-      <path d={`${d} L${w} ${h} L0 ${h} Z`} fill="url(#lc-area)" />
-      <path d={d} fill="none" stroke={color} strokeWidth="2" vectorEffect="non-scaling-stroke" />
-      <circle cx={last[0] - 3} cy={last[1]} r="4" fill={color} />
-    </svg>
-  )
-}
-
-export function UsageScreen() {
-  return (
-    <ScreenChrome title="Usage · Overview">
-      <div className="flex h-full flex-col gap-3">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Mini label="Spend today" value="$1.18" delta="last 24h" />
-          <Mini label="Tokens (24h)" value="11.7M" delta="79% cached" />
-          <Mini label="Active keys" value="1" delta="balance $4.82" />
-          <Mini label="Avg latency" value="16.1s" delta="probe avg" />
-        </div>
-        <div className="min-h-0 flex-1 rounded-lg border p-3" style={{ borderColor: C.line }}>
-          <LineChart />
-        </div>
-      </div>
-    </ScreenChrome>
-  )
-}
-
-function BreakdownScreen() {
-  const rows = [
-    ['gpt-6-astra', 45, '#cd8a4c'],
-    ['claude-opus-5', 30, '#8a8fd0'],
-    ['claude-fable-5', 17, '#fbbf24'],
-    ['Other', 8, 'rgba(244,245,246,0.4)'],
-  ]
-  return (
-    <ScreenChrome title="Spend · By model">
-      <div className="grid h-full gap-4 sm:grid-cols-2">
-        <div className="flex flex-col justify-center gap-3">
-          <div className="flex h-3 overflow-hidden rounded-full">
-            {rows.map(([l, p, c]) => <span key={l} style={{ width: `${p}%`, background: c }} />)}
-          </div>
-          {rows.map(([l, p, c]) => (
-            <div key={l} className="flex items-center gap-3 text-xs sm:text-sm">
-              <span className="h-2 w-2 rounded-sm" style={{ background: c }} />
-              <span style={{ color: 'rgba(244,245,246,0.75)' }}>{l}</span>
-              <span className="ml-auto" style={{ fontVariantNumeric: 'tabular-nums' }}>{p}%</span>
-            </div>
-          ))}
-        </div>
-        <div className="hidden flex-col gap-3 sm:flex">
-          <Mini label="Top model" value="gpt-6-astra" delta="45% of spend" />
-          <Mini label="Cache savings" value="$3.13" delta="last 24h" />
-          <Mini label="Cheapest route" value="deepseek-v4.1-flash" delta="$0.02/M" />
-        </div>
-      </div>
-    </ScreenChrome>
-  )
-}
-
-function KeysScreen() {
-  const rows = [
-    ['prod-web', 'All models', '182.4k', 'Active', true],
-    ['staging', 'GPT + Claude', '41.2k', 'Active', true],
-    ['partner-acme', 'Gemini only', '9.1k', 'Limited', false],
-    ['ci-bots', 'DeepSeek', '7.5k', 'Active', true],
-    ['legacy-mobile', 'GPT-4o', '2.1k', 'Revoked', false],
-  ]
-  return (
-    <ScreenChrome title="Keys · Access">
-      <div className="h-full overflow-x-auto">
-        <table className="w-full text-xs sm:text-sm" style={{ fontVariantNumeric: 'tabular-nums' }}>
-          <thead>
-            <tr className="text-left" style={{ color: C.faint }}>
-              <th className="pb-3 font-normal">Key label</th>
-              <th className="pb-3 font-normal">Model access</th>
-              <th className="pb-3 text-right font-normal">Requests (24h)</th>
-              <th className="hidden pb-3 text-right font-normal sm:table-cell">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map(([label, access, reqs, status, ok]) => (
-              <tr key={label} className="border-t" style={{ borderColor: C.line }}>
-                <td className="py-2.5 font-medium">{label}</td>
-                <td className="py-2.5" style={{ color: C.dim }}>{access}</td>
-                <td className="py-2.5 text-right">{reqs}</td>
-                <td className="hidden py-2.5 text-right sm:table-cell">
-                  <span className="rounded px-1.5 py-0.5" style={{ color: ok ? C.up : C.down, background: ok ? 'rgba(74,222,128,0.1)' : 'rgba(248,113,113,0.1)' }}>{status}</span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </ScreenChrome>
-  )
-}
-
-function StatusScreen() {
-  const models = CATALOG.slice(0, 8).map((m) => {
-    const status = m.availability >= 100 ? 'up' : m.availability >= 90 ? 'degraded' : 'down'
-    return [m.id, status, m.latency]
-  })
-  const tone = (s) => (s === 'up' ? C.up : s === 'degraded' ? '#fbbf24' : C.down)
-  return (
-    <ScreenChrome title="Status · Live">
-      <div className="grid h-full gap-3 sm:grid-cols-3">
-        <div className="hidden min-h-0 rounded-lg border p-3 sm:col-span-2 sm:block" style={{ borderColor: C.line }}>
-          <div className="mb-2 text-xs uppercase tracking-wider" style={{ color: C.faint, fontSize: 10 }}>Request volume</div>
-          <LineChart data={[61, 60, 63, 62, 66, 64, 63, 67, 70, 68, 69, 66, 68, 71, 73, 72, 70, 74]} color={C.up} />
-        </div>
-        <div className="flex flex-col gap-2 overflow-y-auto rounded-lg border p-3" style={{ borderColor: C.line }}>
-          {models.map(([name, status, lat]) => (
-            <div key={name} className="flex items-center gap-2 text-xs">
-              <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: tone(status) }} />
-              <span className="truncate" style={{ color: 'rgba(244,245,246,0.8)' }}>{name}</span>
-              <span className="ml-auto shrink-0 capitalize" style={{ color: tone(status) }}>{status}</span>
-              <span className="w-12 shrink-0 text-right" style={{ color: C.dim, fontVariantNumeric: 'tabular-nums' }}>{lat}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </ScreenChrome>
-  )
-}
-
-const SCREEN_VIEWS = {
-  'usage-overview': UsageScreen,
-  'model-breakdown': BreakdownScreen,
-  'keys-table': KeysScreen,
-  'live-status': StatusScreen,
-}
-
-function Dashboards({ screens }) {
-  const shown = screens.slice(0, 4)
-  return (
-    <section className={cn(SHELL, AIR)}>
-      <div className="text-center">
-        <SectionIcon icon={LayoutTemplate} />
-        <ScrollTitle lead="See what you're" claim="spending" />
-      </div>
-      <Tabs defaultValue={shown[0].slug}>
-        <ScrollIn>
-          <TabsP.List className="relative mx-auto mt-14 flex w-max max-w-full gap-1.5 overflow-x-auto whitespace-nowrap px-1">
-            {shown.map((x) => (
-              <TabsP.Trigger
-                key={x.slug}
-                value={x.slug}
-                className="relative z-10 shrink-0 rounded-full px-3.5 py-1.5 text-sm text-white/40 outline-none transition-colors duration-300 hover:text-white data-[state=active]:bg-white/[0.09] data-[state=active]:text-white focus-visible:ring-2 focus-visible:ring-white/25"
-              >
-                {x.label}
-              </TabsP.Trigger>
-            ))}
-          </TabsP.List>
-        </ScrollIn>
-        <ScrollIn tilt i={1} className="mt-8">
-          <GlassFrame>
-            {shown.map((x) => {
-              const View = SCREEN_VIEWS[x.slug] || UsageScreen
-              return (
-                <TabsP.Content key={x.slug} value={x.slug}>
-                  <View />
-                </TabsP.Content>
-              )
-            })}
-          </GlassFrame>
-        </ScrollIn>
-      </Tabs>
-    </section>
-  )
-}
-
-function Faq() {
-  return (
-    <section className={cn(SHELL, AIR)}>
-      <div className="mx-auto max-w-3xl">
-        <SectionIcon icon={Sparkles} />
-        <ScrollTitle lead="Questions," claim="answered" className="text-center" />
-        <ScrollIn>
-          <Accordion type="single" collapsible defaultValue={FAQ[0][0]} className="mt-14 border-y" style={{ borderColor: C.line }}>
-            {FAQ.map(([q, a]) => (
-              <AccordionItem key={q} value={q}>
-                <AccordionTrigger>{q}</AccordionTrigger>
-                <AccordionContent>{a}</AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
-        </ScrollIn>
-      </div>
-    </section>
-  )
-}
-
-function Close() {
-  return (
-    <section className="relative overflow-hidden pt-32 sm:pt-40">
-      <div className={cn(SHELL, 'relative z-10 text-center')}>
-        <ScrollIn>
-          <div className="mb-10 flex justify-center"><Wordmark height={24} /></div>
-        </ScrollIn>
-        <ScrollIn i={1}>
-          <ScrollTitle lead="One key." claim="Every model." className="mx-auto max-w-xl" />
-        </ScrollIn>
-        <ScrollIn i={3}>
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-5">
-            <PrimaryButton to="/signup">Create account</PrimaryButton>
-            <TextLink to="/pricing">Compare pricing</TextLink>
-          </div>
-        </ScrollIn>
-      </div>
-      <RisingFooterArt>
-        <div className="-mt-10">
-          <AsciiRidge height={300} opacity={0.55} />
-        </div>
-      </RisingFooterArt>
-    </section>
-  )
-}
-
 export function Footer() {
   const cols = [
     ['Product', [
-      { label: 'Models', to: '/#models' },
+      { label: 'Models and prices', to: '/#models' },
       { label: 'Pricing', to: '/pricing' },
-      { label: 'Status page', to: '/status' },
+      { label: 'Status', to: '/status' },
     ]],
-    ['Resources', [
+    ['Build', [
       { label: 'Documentation', to: '/docs' },
       { label: 'API reference', to: '/docs#chat-completions' },
       { label: 'Changelog', to: '/docs#changelog' },
     ]],
+    ['Account', [
+      { label: 'Create account', to: '/signup' },
+      { label: 'Sign in', to: '/signin' },
+      { label: 'Dashboard', to: '/dashboard' },
+    ]],
   ]
   return (
-    <footer className="relative z-10 border-t" style={{ borderColor: C.line, background: C.bg }}>
-      <div className={cn(SHELL, 'grid gap-10 py-14 sm:grid-cols-3')}>
-        <div><Wordmark /></div>
-        {cols.map(([title, links]) => (
-          <div key={title}>
-            <p className="text-xs font-medium uppercase tracking-widest" style={{ color: C.faint }}>{title}</p>
-            <ul className="mt-4 space-y-2.5">
-              {links.map((l) => (
-                <li key={l.label}>
-                  {l.to.startsWith('/') ? (
-                    <Link to={l.to} className="text-sm transition-colors hover:text-white" style={{ color: 'rgba(244,245,246,0.55)' }}>{l.label}</Link>
-                  ) : (
-                    <a href={l.to} className="text-sm transition-colors hover:text-white" style={{ color: 'rgba(244,245,246,0.55)' }}>{l.label}</a>
-                  )}
-                </li>
-              ))}
-            </ul>
+    <footer className="relative z-10 mt-2" style={{ background: C.bg }}>
+      <div className="mx-auto w-full max-w-[1480px] px-3 sm:px-4">
+        <div className="grid gap-10 px-1 pb-10 pt-20 sm:grid-cols-2 lg:grid-cols-12">
+          <div className="sm:col-span-2 lg:col-span-12"><Link to="/" aria-label="lenar home"><Wordmark height={22} /></Link></div>
+          {cols.map(([title, links]) => (
+            <div key={title} className="lg:col-span-2">
+              <p className="text-[15px]" style={{ color: C.dim }}>{title}</p>
+              <ul className="mt-4 space-y-2.5">
+                {links.map((l) => (
+                  <li key={l.label}>
+                    <Link to={l.to} className="text-[15px] transition-colors hover:text-[#cd8a4c]" style={{ color: C.fg }}>{l.label}</Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+          <div className="lg:col-span-4 lg:col-start-9">
+            <p className="text-[15px]" style={{ color: C.dim }}>One key, every model</p>
+            <p className="mt-4 max-w-[34ch] text-[15px]" style={{ color: C.fg }}>One OpenAI-compatible endpoint for GPT, Claude, Gemini, DeepSeek and more, paid per token.</p>
           </div>
-        ))}
-      </div>
-      <div className={cn(SHELL, 'flex flex-wrap items-center justify-between gap-2 border-t py-6 text-xs')} style={{ borderColor: C.line, color: 'rgba(244,245,246,0.3)' }}>
-        <span>lenar — one key, every model</span>
-        <span>AI API gateway</span>
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-3 px-1 pb-8 text-[14px]" style={{ color: C.dim }}>
+          <span>© {new Date().getFullYear()} lenar</span>
+          <PrimaryButton small to="/signup" tone="copper">Get your key</PrimaryButton>
+        </div>
       </div>
     </footer>
   )
@@ -1086,30 +477,30 @@ export const STYLES = `
 .calc-range::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 16px; height: 16px; border-radius: 999px; background: #cd8a4c; box-shadow: 0 0 0 4px rgba(205,138,76,0.18); transition: box-shadow 150ms }
 .calc-range::-webkit-slider-thumb:hover { box-shadow: 0 0 0 6px rgba(205,138,76,0.22) }
 .calc-range::-moz-range-thumb { width: 16px; height: 16px; border: none; border-radius: 999px; background: #cd8a4c; box-shadow: 0 0 0 4px rgba(205,138,76,0.18) }
+.lb-roll { position: relative; display: inline-grid; overflow: hidden; line-height: 1.3 }
+.lb-roll > span { grid-area: 1 / 1; display: inline-flex; align-items: center; gap: .4em; transition: transform 520ms cubic-bezier(0.22,1,0.36,1) }
+.lb-roll > span:last-child { transform: translateY(115%) }
+.group:hover .lb-roll > span:first-child, .group:focus-visible .lb-roll > span:first-child { transform: translateY(-115%) }
+.group:hover .lb-roll > span:last-child, .group:focus-visible .lb-roll > span:last-child { transform: none }
+.lb-hexdot { transform-origin: 50px 50px; transform-box: view-box; transition: transform 400ms cubic-bezier(0.22,1,0.36,1) }
+.group:hover .lb-hexdot { transform: scale(1.5) }
 @media (prefers-reduced-motion: reduce) {
+  .lb-roll > span { transition: none }
   .ssy-rise, .ssy-sway, .ssy-sheen, .ssy-float, .ssy-fade, .ssy-in-right, .ssy-in-left { animation: none }
 }
 `
 
-export default function SimpleLanding({ screens = SCREENS, models = MODELS }) {
+export default function SimpleLanding() {
   return (
     <div
       className="min-h-screen antialiased"
       style={{ background: C.bg, color: C.fg, fontFamily: "'Instrument Sans', ui-sans-serif, system-ui, sans-serif" }}
     >
       <style>{STYLES}</style>
-      <Nav />
+      <Nav wide />
       <ScrollProgress />
       <main>
-        <HeroScroll count={models} />
-        <RoutingShowcase />
-        <SdkSwitcher />
-        <SavingsCalculator />
-        <Features />
-        <Numbers models={models} uptime={99} requests={12} providers={PROVIDER_COUNT} />
-        <Dashboards screens={screens} />
-        <Faq />
-        <Close />
+        <LandingBoard />
       </main>
       <Footer />
     </div>

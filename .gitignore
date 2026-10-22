@@ -7,3 +7,4 @@ dist
 supabase/.temp
 .DS_Store
 .wrangler/
+.taste-skill/

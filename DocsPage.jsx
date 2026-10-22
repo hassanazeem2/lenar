@@ -256,16 +256,16 @@ for chunk in stream:
               <div key={f.id}>
                 <H3>{f.label}</H3>
                 <Table
-                  head={['Model id', 'Input $/M', 'Output $/M']}
+                  head={['Model id', 'Standard $/M tokens', 'Cached input $/M']}
                   rows={f.models.map((m) => [
                     <K key="k">{m.id}</K>,
-                    `$${m.rates.input}`,
-                    `$${m.rates.output}`,
+                    `$${m.price}`,
+                    `$${m.cacheRead}`,
                   ])}
                 />
               </div>
             ))}
-            <P>See <Link to="/pricing" className="underline underline-offset-2">pricing</Link> for cache rates and long-context tiers, and <Link to="/status" className="underline underline-offset-2">status</Link> for live latency.</P>
+            <P>See <Link to="/pricing" className="underline underline-offset-2">pricing</Link> for live rates and what each top-up buys, and <Link to="/status" className="underline underline-offset-2">status</Link> for live latency.</P>
           </>
         ),
       },
