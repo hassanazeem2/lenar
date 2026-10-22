@@ -48,7 +48,7 @@ function AnimatedRoutes() {
       <motion.div
         key={pageKey(location.pathname)}
         initial={{ opacity: 0, y: 14, filter: 'blur(6px)' }}
-        animate={{ opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.45, ease: [0.16, 1, 0.3, 1] } }}
+        animate={{ opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.45, ease: [0.16, 1, 0.3, 1] }, transitionEnd: { filter: 'none' } }}
         exit={{ opacity: 0, y: -8, filter: 'blur(4px)', transition: { duration: 0.2, ease: [0.4, 0, 1, 1] } }}
       >
         <Suspense fallback={null}>

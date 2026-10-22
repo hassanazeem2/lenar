@@ -562,7 +562,7 @@ const GLASS_SPRING = { type: 'spring', stiffness: 380, damping: 30, mass: 0.8 }
  * A row of options on a frosted track, with a liquid-glass lens that slides to the chosen one.
  * The lens squashes a little as it travels and swells on press, like iOS's glass controls.
  */
-function Segmented({ options, value, onChange, id, light, scroll, wrap }) {
+export function Segmented({ options, value, onChange, id, light, scroll, wrap }) {
   return (
     <div
       className={cn('lb-glass-track inline-flex gap-1 rounded-[22px] p-1', scroll ? 'max-w-full flex-nowrap overflow-x-auto [scrollbar-width:none]' : 'flex-wrap', wrap && 'max-w-full')}
@@ -700,7 +700,7 @@ function OpenRow({ m, onClose }) {
   )
 }
 
-export function ModelBoard({ models, live, checkedAt, selected, setSelected, title = 'Every model, priced live.', limit = 9, headingAs = 'h2' }) {
+export function ModelBoard({ models, live, checkedAt, selected, setSelected, title = 'Every model, priced live.', limit = 9, headingAs = 'h2', bare = false }) {
   const [family, setFamily] = useState('all')
   const [sort, setSort] = useState('price')
   const [q, setQ] = useState('')
@@ -721,13 +721,13 @@ export function ModelBoard({ models, live, checkedAt, selected, setSelected, tit
   }
   const ago = checkedAt ? Math.max(0, Math.round((Date.now() - new Date(checkedAt).getTime()) / 1000)) : null
   return (
-    <section id="models" className={cn(BOARD, 'scroll-mt-20')}>
-      <SectionHead title={title} as={headingAs} className="!pt-12 sm:!pt-16">
+    <section id={bare ? undefined : 'models'} className={bare ? '' : cn(BOARD, 'scroll-mt-20')}>
+      {bare ? null : <SectionHead title={title} as={headingAs} className="!pt-12 sm:!pt-16">
         <p className="flex items-center gap-2.5 text-[16px]" style={{ color: C.fg }}>
           <LiveDot color={live ? C.up : T.amber} />
           {live ? `Live${ago != null ? `, checked ${ago < 90 ? `${ago}s` : `${Math.round(ago / 60)} min`} ago` : ''}` : 'Today’s rates, live data loading'}
         </p>
-      </SectionHead>
+      </SectionHead>}
 
       <div className="mb-2 flex flex-wrap items-center gap-2 px-1">
         <Segmented id="fam" options={fams} value={family} onChange={setFamily} scroll />
@@ -755,11 +755,11 @@ export function ModelBoard({ models, live, checkedAt, selected, setSelected, tit
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.3, ease: EASE }}
                 onClick={() => setSelected(m.id)}
-                className="lb-row group grid min-h-[68px] grid-cols-[1fr_auto] items-center gap-4 rounded-[10px] px-5 text-left outline-none focus-visible:ring-2 focus-visible:ring-[#cd8a4c] md:grid-cols-12"
+                className={cn('lb-row group grid grid-cols-[1fr_auto] items-center gap-4 rounded-[10px] px-5 text-left outline-none focus-visible:ring-2 focus-visible:ring-[#cd8a4c] md:grid-cols-12', bare ? 'min-h-[52px]' : 'min-h-[68px]')}
                 style={{ background: T.tile }}
               >
                 <span className="flex items-center gap-3 md:col-span-4">
-                  <span className="font-medium transition-transform duration-300 group-hover:translate-x-1" style={{ fontSize: 'clamp(18px, 1.7vw, 24px)', letterSpacing: '-0.02em', color: C.fg }}>{m.name}</span>
+                  <span className="font-medium transition-transform duration-300 group-hover:translate-x-1" style={{ fontSize: bare ? 16 : 'clamp(18px, 1.7vw, 24px)', letterSpacing: '-0.02em', color: C.fg }}>{m.name}</span>
                 </span>
                 <span className="hidden text-[15px] md:col-span-2 md:block" style={{ color: C.dim }}>{FAMILY_ORDER.find((f) => f.id === m.family)?.short}</span>
                 <span className="hidden text-[18px] md:col-span-2 md:block" style={{ color: C.fg, fontVariantNumeric: 'tabular-nums' }}>{usd(m.price)} <span className="text-[14px]" style={{ color: C.dim }}>/M</span></span>
