@@ -10,7 +10,7 @@ import { SlidingNumber } from '@animate-ui/react/primitives/texts/sliding-number
 import { Tilt, TiltContent } from '@animate-ui/react/primitives/effects/tilt'
 import { FAMILY_ORDER, useLiveModels } from './models.js'
 import { API_BASE } from './src/lib/api.js'
-import { C, cn, MARK_D, MetalMark, PrimaryButton, HexGlyph } from './SimpleLanding.jsx'
+import { C, cn, MARK_D, MetalMark, PrimaryButton, HexGlyph, smoothTo, glideTo } from './SimpleLanding.jsx'
 
 export const T = {
   tile: '#14120f',
@@ -376,7 +376,7 @@ function PriceScreen({ models, p, onPick }) {
       </div>
       <div className="flex items-center justify-between gap-4 px-5 py-3.5 text-[14px] sm:px-6" style={{ background: T.tile2, color: C.dim }}>
         <span className="hidden sm:inline">One request format for every model. Billed per token, cached input for less.</span>
-        <a href="#models" className="pointer-events-auto group inline-flex items-center gap-1.5 transition-colors hover:text-[#cd8a4c]" style={{ color: C.fg }}>
+        <a href="#models" onClick={smoothTo} className="pointer-events-auto group inline-flex items-center gap-1.5 transition-colors hover:text-[#cd8a4c]" style={{ color: C.fg }}>
           All {models.length} models <ArrowRight size={14} className="rotate-90 transition-transform duration-300 group-hover:translate-y-0.5" />
         </a>
       </div>
@@ -1393,7 +1393,8 @@ export default function LandingBoard() {
   const [selected, setSelected] = useState('claude-opus-5-5')
   const pick = (id) => {
     setSelected(id)
-    document.getElementById('models')?.scrollIntoView({ behavior: 'smooth' })
+    const el = document.getElementById('models')
+    if (el) glideTo(el.getBoundingClientRect().top + window.scrollY - (parseFloat(getComputedStyle(el).scrollMarginTop) || 0))
   }
   return (
     <>

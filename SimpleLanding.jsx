@@ -296,6 +296,41 @@ export function TextLink({ children, to, href, chevron = true }) {
   return <a href={dest} className={cls} style={style}>{inner}</a>
 }
 
+/** Glides the window to a y position: ease-in-out, 0.7-1.4s depending on the distance. */
+export function glideTo(top) {
+  const from = window.scrollY
+  const dist = top - from
+  if (Math.abs(dist) < 2) return
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { window.scrollTo(0, top); return }
+  const dur = Math.min(1400, Math.max(700, Math.abs(dist) * 0.45))
+  const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
+  const t0 = performance.now()
+  let stopped = false
+  // A wheel or touch from the visitor takes over at once.
+  const stop = () => { stopped = true }
+  window.addEventListener('wheel', stop, { once: true, passive: true })
+  window.addEventListener('touchstart', stop, { once: true, passive: true })
+  const step = (now) => {
+    if (stopped) return
+    const t = Math.min(1, (now - t0) / dur)
+    window.scrollTo(0, from + dist * ease(t))
+    if (t < 1) requestAnimationFrame(step)
+    else { window.removeEventListener('wheel', stop); window.removeEventListener('touchstart', stop) }
+  }
+  requestAnimationFrame(step)
+}
+
+/** Click handler for in-page links (#id): glide to the section instead of jumping. */
+export function smoothTo(e) {
+  const id = e.currentTarget.getAttribute('href')?.slice(1)
+  const el = id && document.getElementById(id)
+  if (!el) return
+  e.preventDefault()
+  const offset = parseFloat(getComputedStyle(el).scrollMarginTop) || 0
+  glideTo(el.getBoundingClientRect().top + window.scrollY - offset)
+  history.replaceState(null, '', `#${id}`)
+}
+
 /** The lenar hex, small: a port with a dot in it. */
 export function HexGlyph({ className, color = 'currentColor', dot = '#cd8a4c', hole = '#0a0908' }) {
   return (
@@ -341,7 +376,7 @@ export function PrimaryButton({ children, small, href, to, className, type, onCl
   } else if (dest && dest.startsWith('/')) {
     el = <Link to={dest} className={cls} style={style}>{inner}</Link>
   } else {
-    el = <a href={dest || '#'} className={cls} style={style}>{inner}</a>
+    el = <a href={dest || '#'} onClick={dest?.startsWith('#') ? smoothTo : undefined} className={cls} style={style}>{inner}</a>
   }
   return <Magnetic strength={0.22} range={110} onlyOnHover disableOnTouch className="inline-block">{el}</Magnetic>
 }
