@@ -401,7 +401,16 @@ function useIsLarge() {
 function HeroStage({ models, live, onPick }) {
   const lg = useIsLarge()
   const reduce = useReducedMotion()
-  if (!lg || reduce) {
+  if (!reduce && !lg) {
+    // Phones: the board scrolls normally, then the same reveal plays on its own stage.
+    return (
+      <>
+        <Hero models={models} live={live} onPick={onPick} />
+        <PinnedHero models={models} live={live} onPick={onPick} withHero={false} />
+      </>
+    )
+  }
+  if (reduce) {
     return (
       <>
         <Hero models={models} live={live} onPick={onPick} />
@@ -414,7 +423,7 @@ function HeroStage({ models, live, onPick }) {
   return <PinnedHero models={models} live={live} onPick={onPick} />
 }
 
-function PinnedHero({ models, live, onPick }) {
+function PinnedHero({ models, live, onPick, withHero = true }) {
   const ref = useRef(null)
   const stageRef = useRef(null)
   const markRef = useRef(null)
@@ -424,8 +433,9 @@ function PinnedHero({ models, live, onPick }) {
   // Where the mark sits in its tile, relative to the middle of the stage.
   const dx = useMotionValue(0)
   const dy = useMotionValue(0)
-  const [ready, setReady] = useState(false)
+  const [ready, setReady] = useState(!withHero)
   useEffect(() => {
+    if (!withHero) return
     const measure = () => {
       const m = markRef.current?.getBoundingClientRect()
       const st = stageRef.current?.getBoundingClientRect()
@@ -438,7 +448,7 @@ function PinnedHero({ models, live, onPick }) {
     const t = setTimeout(measure, 900)
     window.addEventListener('resize', measure)
     return () => { clearTimeout(t); window.removeEventListener('resize', measure) }
-  }, [dx, dy])
+  }, [dx, dy, withHero])
 
   // 1. The board lifts away.
   const heroOpacity = useTransform(p, [0, 0.22], [1, 0])
@@ -472,33 +482,35 @@ function PinnedHero({ models, live, onPick }) {
   const capY = useTransform(p, [0.74, 0.9], [16, 0])
 
   return (
-    <section ref={ref} className="relative" style={{ height: '290vh' }}>
+    <section ref={ref} className="relative" style={{ height: withHero ? '290vh' : '230vh' }}>
       <div ref={stageRef} className="sticky top-16 h-[calc(100svh-64px)] overflow-hidden">
         <motion.div className="pointer-events-none absolute inset-0" style={{ opacity: terrainOpacity }}>
           <AsciiField flood={flood} depth={0.36} />
         </motion.div>
 
-        <motion.div style={{ opacity: heroOpacity, y: heroY, scale: heroScale, filter: heroFilter, pointerEvents: heroPointer }}>
-          <Hero models={models} live={live} onPick={onPick} markRef={markRef} hideMark={ready} />
-        </motion.div>
+        {withHero ? (
+          <motion.div style={{ opacity: heroOpacity, y: heroY, scale: heroScale, filter: heroFilter, pointerEvents: heroPointer }}>
+            <Hero models={models} live={live} onPick={onPick} markRef={markRef} hideMark={ready} />
+          </motion.div>
+        ) : null}
 
         {/* the mark, lifted out of its tile */}
         <motion.div className="absolute left-1/2 top-1/2" style={{ x: markX, y: markY, opacity: ready ? markOpacity : 0 }}>
           <motion.div className="-translate-x-1/2 -translate-y-1/2" style={{ rotate: markRotate, scale: markScale, filter: markFilter }}>
             <motion.div className="pointer-events-none absolute -inset-24 rounded-full" style={{ opacity: glow, background: 'radial-gradient(50% 50% at 50% 50%, #cd8a4c, transparent 70%)' }} />
-            <MetalMark size={150} />
+            <MetalMark size={withHero ? 150 : 110} />
           </motion.div>
         </motion.div>
 
         {/* the screen it opens into */}
-        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-6" style={{ perspective: 1400 }}>
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-3 sm:px-6" style={{ perspective: 1400 }}>
           <motion.div
             className="w-full max-w-[860px]"
             style={{ scale: shotScale, opacity: shotOpacity, rotateX: shotRotateX, y: shotY, transformOrigin: '50% 40%' }}
           >
             <PriceScreen models={models} p={p} />
           </motion.div>
-          <motion.p className="mt-7 text-center text-[17px]" style={{ opacity: capOpacity, y: capY, color: C.dim }}>
+          <motion.p className="mt-7 max-w-[34ch] text-center text-[17px] sm:max-w-none" style={{ opacity: capOpacity, y: capY, color: C.dim }}>
             The models you already use, at the price you’ll actually pay. <span style={{ color: C.fg }}>Every one on one key.</span>
           </motion.p>
         </div>
@@ -544,25 +556,103 @@ const SORTS = [
   { id: 'name', label: 'A–Z', fn: (a, b) => a.name.localeCompare(b.name) },
 ]
 
-function Segmented({ options, value, onChange, id, light, scroll }) {
+const GLASS_SPRING = { type: 'spring', stiffness: 380, damping: 30, mass: 0.8 }
+
+/**
+ * A row of options on a frosted track, with a liquid-glass lens that slides to the chosen one.
+ * The lens squashes a little as it travels and swells on press, like iOS's glass controls.
+ */
+function Segmented({ options, value, onChange, id, light, scroll, wrap }) {
   return (
-    <div className={cn('inline-flex gap-1 rounded-full p-1', scroll ? 'max-w-full flex-nowrap overflow-x-auto [scrollbar-width:none]' : 'flex-wrap')} style={{ background: light ? 'rgba(10,9,8,0.12)' : T.tile2 }}>
+    <div
+      className={cn('lb-glass-track inline-flex gap-1 rounded-[22px] p-1', scroll ? 'max-w-full flex-nowrap overflow-x-auto [scrollbar-width:none]' : 'flex-wrap', wrap && 'max-w-full')}
+      style={light ? { background: 'rgba(10,9,8,0.12)', boxShadow: 'none' } : undefined}
+    >
       {options.map((o) => {
         const on = o.id === value
         return (
-          <button
+          <motion.button
             key={o.id}
             type="button"
             onClick={() => onChange(o.id)}
             aria-pressed={on}
-            className="relative shrink-0 rounded-full px-4 py-2 text-[15px] outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-[#cd8a4c]"
-            style={{ color: on ? T.ink : light ? T.ink : C.fg }}
+            whileTap={{ scale: 0.95 }}
+            transition={GLASS_SPRING}
+            className="relative shrink-0 rounded-full px-4 py-2 text-[15px] outline-none focus-visible:ring-2 focus-visible:ring-[#cd8a4c]"
+            style={{ color: light ? T.ink : C.fg }}
           >
-            {on ? <motion.span layoutId={`seg-${id}`} className="absolute inset-0 rounded-full" style={{ background: light ? T.ink : T.bone }} transition={{ type: 'spring', stiffness: 420, damping: 34 }} /> : null}
-            <span className="relative" style={{ color: on ? (light ? T.bone : T.ink) : undefined }}>{o.label}</span>
-          </button>
+            {on ? (
+              <motion.span
+                layoutId={`seg-${id}`}
+                className={cn('absolute inset-0 rounded-full', light ? '' : 'lb-glass-lens')}
+                style={light ? { background: T.ink } : undefined}
+                transition={GLASS_SPRING}
+              />
+            ) : null}
+            <span className="relative transition-opacity duration-200" style={{ color: on && light ? T.bone : undefined, opacity: on || light ? 1 : 0.62 }}>{o.label}</span>
+          </motion.button>
         )
       })}
+    </div>
+  )
+}
+
+/**
+ * A slider with a glass thumb. The thumb follows the finger exactly while dragging (on a spring,
+ * so it never jumps), turns to clear glass over the copper fill, and settles onto the nearest step.
+ */
+function GlassSlider({ value, onChange, min = 0, max = 100, step = 1, label, format = (v) => v }) {
+  const track = useRef(null)
+  const [drag, setDrag] = useState(false)
+  const toT = (v) => (v - min) / (max - min)
+  const pos = useMotionValue(toT(value))
+  const smooth = useSpring(pos, { stiffness: 520, damping: 42, mass: 0.6 })
+  const left = useTransform(smooth, (t) => `${t * 100}%`)
+  useEffect(() => { if (!drag) pos.set(toT(value)) }, [value, drag]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const fromX = (x) => {
+    const r = track.current.getBoundingClientRect()
+    const t = Math.max(0, Math.min(1, (x - r.left) / r.width))
+    pos.set(t)
+    const v = Math.round((min + t * (max - min)) / step) * step
+    if (v !== value) onChange(v)
+  }
+  const key = (e) => {
+    const d = { ArrowRight: step, ArrowUp: step, ArrowLeft: -step, ArrowDown: -step, PageUp: step * 4, PageDown: -step * 4 }[e.key]
+    if (e.key === 'Home') { e.preventDefault(); onChange(min) } else if (e.key === 'End') { e.preventDefault(); onChange(max) } else if (d) { e.preventDefault(); onChange(Math.max(min, Math.min(max, value + d))) }
+  }
+  return (
+    <div className="flex items-center gap-4 text-[15px]" style={{ color: C.fg }}>
+      <span className="shrink-0">{label}</span>
+      <div
+        ref={track}
+        role="slider"
+        tabIndex={0}
+        aria-label={label}
+        aria-valuemin={min}
+        aria-valuemax={max}
+        aria-valuenow={value}
+        aria-valuetext={`${format(value)}`}
+        onKeyDown={key}
+        onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); setDrag(true); fromX(e.clientX) }}
+        onPointerMove={(e) => { if (drag) fromX(e.clientX) }}
+        onPointerUp={() => { setDrag(false); pos.set(toT(value)) }}
+        onPointerCancel={() => { setDrag(false); pos.set(toT(value)) }}
+        className="group relative h-11 flex-1 cursor-pointer touch-none select-none rounded-full outline-none focus-visible:ring-2 focus-visible:ring-[#cd8a4c]"
+      >
+        <div className="lb-glass-track absolute inset-x-0 top-1/2 h-2 -translate-y-1/2 overflow-hidden rounded-full">
+          <motion.div className="h-full rounded-full" style={{ width: left, background: `linear-gradient(90deg, ${T.copperDeep}, ${T.copper})` }} />
+        </div>
+        <motion.div className="pointer-events-none absolute top-1/2" style={{ left }}>
+          <motion.div
+            className={cn('-translate-x-1/2 -translate-y-1/2 rounded-full', drag ? 'lb-glass-lens' : '')}
+            animate={{ width: drag ? 52 : 34, height: drag ? 32 : 24, backgroundColor: drag ? 'rgba(255,255,255,0.10)' : T.bone }}
+            transition={GLASS_SPRING}
+            style={{ boxShadow: drag ? undefined : '0 2px 10px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.8)' }}
+          />
+        </motion.div>
+      </div>
+      <span className="w-11 shrink-0 text-right" style={{ fontVariantNumeric: 'tabular-nums' }}>{format(value)}</span>
     </div>
   )
 }
@@ -721,24 +811,8 @@ export function TopUps({ models, selected, setSelected }) {
           Top up once.<br />Spend it anywhere.
         </motion.h2>
         <div className="flex w-full max-w-[640px] flex-col gap-4">
-          <div className="flex flex-wrap gap-1.5">
-            {picks.map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => setSelected(p.id)}
-                className="rounded-full px-3.5 py-2 text-[15px] transition-colors duration-200"
-                style={{ background: p.id === m.id ? T.bone : T.tile2, color: p.id === m.id ? T.ink : C.fg }}
-              >
-                {p.name}
-              </button>
-            ))}
-          </div>
-          <label className="flex items-center gap-4 text-[15px]" style={{ color: C.fg }}>
-            <span className="shrink-0">Cached input</span>
-            <input type="range" min={0} max={80} step={5} value={cached} onChange={(e) => setCached(Number(e.target.value))} className="calc-range w-full" aria-label="Share of input served from cache" />
-            <span className="w-10 shrink-0 text-right" style={{ fontVariantNumeric: 'tabular-nums' }}>{cached}%</span>
-          </label>
+          <Segmented id="pick" wrap options={picks.map((p) => ({ id: p.id, label: p.name }))} value={m.id} onChange={setSelected} />
+          <GlassSlider label="Cached input" value={cached} onChange={setCached} min={0} max={80} step={5} format={(v) => `${v}%`} />
         </div>
       </div>
       <div className="grid gap-2 lg:grid-cols-12 lg:items-end">
@@ -1117,6 +1191,22 @@ function Close() {
 }
 
 export const BOARD_STYLES = `
+.lb-glass-track {
+  background: rgba(255,255,255,0.045);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), inset 0 0 0 1px rgba(255,255,255,0.05);
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+}
+.lb-glass-lens {
+  background: linear-gradient(180deg, rgba(255,255,255,0.24), rgba(255,255,255,0.07) 55%, rgba(255,255,255,0.12));
+  box-shadow:
+    inset 0 1px 0.5px rgba(255,255,255,0.55),
+    inset 0 -1px 1px rgba(255,255,255,0.12),
+    inset 0 0 0 1px rgba(255,255,255,0.10),
+    0 6px 18px rgba(0,0,0,0.35);
+  backdrop-filter: blur(10px) saturate(180%) brightness(1.15);
+  -webkit-backdrop-filter: blur(10px) saturate(180%) brightness(1.15);
+}
 @keyframes lb-marquee { from { transform: translateX(0) } to { transform: translateX(-50%) } }
 @keyframes lb-spin { to { transform: rotate(360deg) } }
 @keyframes lb-nudge { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-5px) } }

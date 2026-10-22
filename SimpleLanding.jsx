@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { ArrowRight, Check, ChevronRight, Copy } from 'lucide-react'
 import { useSession } from './src/lib/api.js'
@@ -98,12 +98,37 @@ export function Rise({ children, i = 0, className }) {
   )
 }
 
+/** The metal hex logo, flat and still: the same art as public/logo.svg. */
+export function MetalHex({ size = 22, className }) {
+  const id = useId().replace(/:/g, '')
+  return (
+    <svg viewBox="-2 -2 104 104" width={size} height={size} className={className} aria-hidden>
+      <defs>
+        <linearGradient id={`${id}f`} x1="49.7" y1="-4.5" x2="28.3" y2="96.4" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#ffffff" />
+          <stop offset="0.478" stopColor="#e4e4e4" />
+          <stop offset="0.608" stopColor="#c4c4c4" />
+          <stop offset="0.861" stopColor="#a0a0a0" />
+          <stop offset="1" stopColor="#5c5c5c" />
+        </linearGradient>
+        <radialGradient id={`${id}s`} cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(72.8 7.1) rotate(124.8) scale(97.7 131)">
+          <stop offset="0.072" stopColor="#f7f7f7" />
+          <stop offset="0.385" stopColor="#e4e4e4" />
+          <stop offset="0.764" stopColor="#7b7b7b" />
+          <stop offset="1" stopColor="#ffffff" />
+        </radialGradient>
+      </defs>
+      <path d={MARK_D} fill={`url(#${id}f)`} stroke={`url(#${id}s)`} strokeWidth="2.5" strokeLinejoin="round" />
+      <circle cx="50" cy="50" r="18.5" fill="#0a0908" stroke={`url(#${id}s)`} strokeWidth="1.67" />
+      <circle cx="50" cy="50" r="7" fill="#cd8a4c" />
+    </svg>
+  )
+}
+
 export function Wordmark({ height = 17 }) {
   return (
-    <span className="inline-flex items-center gap-2" style={{ color: C.fg }}>
-      <svg viewBox={MARK_VB} style={{ height: height + 4, width: 'auto' }} aria-hidden>
-        <path d={MARK_D} fill="currentColor" />
-      </svg>
+    <span className="group/wm inline-flex items-center gap-2" style={{ color: C.fg }}>
+      <MetalHex size={height + 9} className="transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover/wm:rotate-[120deg]" />
       <span className="font-semibold" style={{ fontSize: height + 3, letterSpacing: '-0.04em', lineHeight: 1 }}>lenar</span>
     </span>
   )
