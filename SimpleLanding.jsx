@@ -134,6 +134,31 @@ export function Wordmark({ height = 17 }) {
   )
 }
 
+const X_HREF = 'https://x.com/trylenar'
+
+function XGlyph({ size = 14 }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true" fill="currentColor">
+      <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z" />
+    </svg>
+  )
+}
+
+export function XLink({ size = 14, handle = false, className }) {
+  return (
+    <a
+      href={X_HREF}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="Lenar on X (@trylenar)"
+      className={cn('inline-flex items-center gap-2 text-sm text-[rgba(243,239,231,0.5)] transition-colors hover:text-[#cd8a4c]', className)}
+    >
+      <XGlyph size={size} />
+      {handle ? <span>@trylenar</span> : null}
+    </a>
+  )
+}
+
 export function MetalMark({ size = 250 }) {
   const ref = useRef(null)
   const [tilt, setTilt] = useState({ x: 0, y: 0, on: false })
@@ -420,6 +445,9 @@ export function Nav({ wide = false }) {
           ))}
         </nav>
         <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-4 md:ml-0">
+          <span className="hidden md:contents">
+            <XLink size={15} />
+          </span>
           {session ? (
             <PrimaryButton small to="/dashboard">Dashboard <ArrowRight size={14} strokeWidth={2.5} /></PrimaryButton>
           ) : (
@@ -497,7 +525,10 @@ export function Footer() {
     <footer className="relative z-10 mt-2" style={{ background: C.bg }}>
       <div className="mx-auto w-full max-w-[1480px] px-3 sm:px-4">
         <div className="grid gap-10 px-1 pb-10 pt-20 sm:grid-cols-2 lg:grid-cols-12">
-          <div className="sm:col-span-2 lg:col-span-12"><Link to="/" aria-label="lenar home"><Wordmark height={22} /></Link></div>
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-3 sm:col-span-2 lg:col-span-12">
+            <Link to="/" aria-label="lenar home"><Wordmark height={22} /></Link>
+            <XLink handle />
+          </div>
           {cols.map(([title, links]) => (
             <div key={title} className="lg:col-span-2">
               <p className="text-[15px]" style={{ color: C.dim }}>{title}</p>
