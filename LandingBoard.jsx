@@ -608,9 +608,12 @@ function PinnedHero({ models, live, onPick, withHero = true }) {
   const terrainOpacity = useTransform(p, [0, 0.12, 0.45, 0.8], [0, 0.45, 0.6, 0.14])
 
   // 3. The mark glides to the centre, turns, swells, and dissolves.
+  // `travel` is 1 while the mark is still home. The hero is already shifting in that
+  // range, and the labels ride with it, so the flying copy follows the same shift.
+  // Otherwise, scrolling back up leaves the hexagon below and right of the orbit.
   const travel = useTransform(p, [0.05, 0.38], [1, 0])
-  const markX = useTransform([dx, travel], ([d, t]) => d * t)
-  const markY = useTransform([dy, travel], ([d, t]) => d * t)
+  const markX = useTransform([dx, travel, heroScale], ([d, t, s]) => d * t * s)
+  const markY = useTransform([dy, travel, heroScale, heroY], ([d, t, s, y]) => d * t * s + y * t)
   const markRotate = useTransform(p, [0.05, 0.42], [0, 90])
   const markScale = useTransform(p, [0, 0.36, 0.46], [1, 1.7, 3.2])
   const markOpacity = useTransform(p, [0.36, 0.46], [1, 0])
@@ -639,12 +642,16 @@ function PinnedHero({ models, live, onPick, withHero = true }) {
           </motion.div>
         ) : null}
 
-        {/* the mark, lifted out of its tile */}
+        {/* the mark, lifted out of its tile. The centering translate has to live on a
+            plain element: a motion style replaces `transform` and would drop it, which
+            parks the hexagon half its own size off the centre of the labels. */}
         <motion.div className="absolute left-1/2 top-1/2" style={{ x: markX, y: markY, opacity: ready && (lifted || !withHero) ? markOpacity : 0 }}>
-          <motion.div className="-translate-x-1/2 -translate-y-1/2" style={{ rotate: markRotate, scale: markScale, filter: markFilter }}>
-            <motion.div className="pointer-events-none absolute -inset-24 rounded-full" style={{ opacity: glow, background: 'radial-gradient(50% 50% at 50% 50%, #cd8a4c, transparent 70%)' }} />
-            <MetalMark size={withHero ? 150 : 110} />
-          </motion.div>
+          <div className="-translate-x-1/2 -translate-y-1/2">
+            <motion.div style={{ rotate: markRotate, scale: markScale, filter: markFilter }}>
+              <motion.div className="pointer-events-none absolute -inset-24 rounded-full" style={{ opacity: glow, background: 'radial-gradient(50% 50% at 50% 50%, #cd8a4c, transparent 70%)' }} />
+              <MetalMark size={withHero ? 150 : 110} />
+            </motion.div>
+          </div>
         </motion.div>
 
         {/* the screen it opens into */}
