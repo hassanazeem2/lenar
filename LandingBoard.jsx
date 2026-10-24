@@ -336,21 +336,26 @@ function PortTile({ models, markRef, hideMark }) {
         </span>
       </div>
       <div className="relative flex flex-1 items-center justify-center">
-        <div className="lb-orbit pointer-events-none absolute" style={{ width: 0, height: 0 }}>
+        {/* Every wrapper down to the label is zero-sized, so each rotate turns about the orbit
+            point itself. With a sized box the turn pivots on the box's own middle and the labels
+            drift off the circle as the orbit spins. */}
+        <div className="lb-orbit pointer-events-none absolute left-1/2 top-1/2" style={{ width: 0, height: 0 }}>
           {fams.map((f, i) => {
             const a = (i / fams.length) * 360
             return (
-              <span key={f.id} className="absolute left-0 top-0" style={{ transform: `rotate(${a}deg) translateX(var(--orbit)) rotate(${-a}deg)` }}>
-                <span className="lb-counter block">
-                  <motion.span
-                    className="block -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full px-3 py-1 text-[13px]"
-                    style={{ background: T.tile3, color: C.fg }}
-                    initial={{ opacity: 0, scale: 0.3 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ type: 'spring', stiffness: 260, damping: 20, delay: HERO_DELAY + 0.55 + i * 0.06 }}
-                  >
-                    {f.short}
-                  </motion.span>
+              <span key={f.id} className="absolute left-0 top-0 block h-0 w-0" style={{ transform: `rotate(${a}deg) translateX(var(--orbit)) rotate(${-a}deg)` }}>
+                <span className="lb-counter block h-0 w-0">
+                  <span className="absolute left-0 top-0 block -translate-x-1/2 -translate-y-1/2">
+                    <motion.span
+                      className="block whitespace-nowrap rounded-full px-3 py-1 text-[13px]"
+                      style={{ background: T.tile3, color: C.fg }}
+                      initial={{ opacity: 0, scale: 0.3 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ type: 'spring', stiffness: 260, damping: 20, delay: HERO_DELAY + 0.55 + i * 0.06 }}
+                    >
+                      {f.short}
+                    </motion.span>
+                  </span>
                 </span>
               </span>
             )
@@ -559,6 +564,9 @@ function PinnedHero({ models, live, onPick, withHero = true }) {
   // Where the mark sits in its tile, relative to the middle of the stage.
   const dx = useMotionValue(0)
   const dy = useMotionValue(0)
+  // How far the hero's middle (where it scales from) sits below the stage's middle.
+  const heroRef = useRef(null)
+  const hy = useMotionValue(0)
   // Measured from layout (offsetLeft/Top), not getBoundingClientRect, so the tiles' entrance and
   // the hero's own scroll transform can't skew it. Re-measured on resize and whenever the page is
   // back at the top, so the mark always flies home to the right spot.
@@ -577,8 +585,9 @@ function PinnedHero({ models, live, onPick, withHero = true }) {
     if (el !== stage) return
     dx.set(x - stage.clientWidth / 2)
     dy.set(y - stage.clientHeight / 2)
+    if (heroRef.current) hy.set((heroRef.current.offsetHeight - stage.clientHeight) / 2)
     setReady(true)
-  }, [dx, dy])
+  }, [dx, dy, hy])
   useEffect(() => {
     if (!withHero) return
     measure()
@@ -613,7 +622,9 @@ function PinnedHero({ models, live, onPick, withHero = true }) {
   // Otherwise, scrolling back up leaves the hexagon below and right of the orbit.
   const travel = useTransform(p, [0.05, 0.38], [1, 0])
   const markX = useTransform([dx, travel, heroScale], ([d, t, s]) => d * t * s)
-  const markY = useTransform([dy, travel, heroScale, heroY], ([d, t, s, y]) => d * t * s + y * t)
+  // The hero scales about its own middle, which is `hy` below the stage's, so a point `d` from
+  // the stage's middle lands at d*s + hy*(1-s).
+  const markY = useTransform([dy, travel, heroScale, heroY, hy], ([d, t, s, y, o]) => (d * s + o * (1 - s) + y) * t)
   const markRotate = useTransform(p, [0.05, 0.42], [0, 90])
   const markScale = useTransform(p, [0, 0.36, 0.46], [1, 1.7, 3.2])
   const markOpacity = useTransform(p, [0.36, 0.46], [1, 0])
@@ -637,7 +648,7 @@ function PinnedHero({ models, live, onPick, withHero = true }) {
         </motion.div>
 
         {withHero ? (
-          <motion.div style={{ opacity: heroOpacity, y: heroY, scale: heroScale, filter: heroFilter, pointerEvents: heroPointer }}>
+          <motion.div ref={heroRef} style={{ opacity: heroOpacity, y: heroY, scale: heroScale, filter: heroFilter, pointerEvents: heroPointer }}>
             <Hero models={models} live={live} onPick={onPick} markRef={markRef} hideMark={ready && lifted} />
           </motion.div>
         ) : null}
@@ -645,7 +656,8 @@ function PinnedHero({ models, live, onPick, withHero = true }) {
         {/* the mark, lifted out of its tile. The centering translate has to live on a
             plain element: a motion style replaces `transform` and would drop it, which
             parks the hexagon half its own size off the centre of the labels. */}
-        <motion.div className="absolute left-1/2 top-1/2" style={{ x: markX, y: markY, opacity: ready && (lifted || !withHero) ? markOpacity : 0 }}>
+        {/* While it is invisible it must not catch clicks, or it swallows the tile mark's spin. */}
+        <motion.div className="absolute left-1/2 top-1/2" style={{ x: markX, y: markY, opacity: ready && (lifted || !withHero) ? markOpacity : 0, pointerEvents: ready && (lifted || !withHero) ? 'auto' : 'none' }}>
           <div className="-translate-x-1/2 -translate-y-1/2">
             <motion.div style={{ rotate: markRotate, scale: markScale, filter: markFilter }}>
               <motion.div className="pointer-events-none absolute -inset-24 rounded-full" style={{ opacity: glow, background: 'radial-gradient(50% 50% at 50% 50%, #cd8a4c, transparent 70%)' }} />
