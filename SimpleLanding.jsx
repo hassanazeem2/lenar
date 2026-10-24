@@ -421,7 +421,7 @@ export function Nav({ wide = false }) {
   const pill = hover ?? current
   return (
     <header className="sticky top-0 z-50 backdrop-blur-xl" style={{ boxShadow: wide ? 'none' : `inset 0 -1px 0 ${C.line}`, background: 'rgba(10,9,8,0.82)' }}>
-      <div className={cn(wide ? 'mx-auto w-full max-w-[1480px] px-4 sm:px-5' : SHELL, 'flex h-16 items-center gap-4 sm:gap-8')}>
+      <div className={cn(wide ? 'mx-auto w-full max-w-[1480px] px-4 sm:px-5' : SHELL, 'flex h-16 items-center gap-3 sm:gap-8')}>
         <Link to="/" className="shrink-0"><Wordmark /></Link>
         <nav className="ml-auto hidden items-center gap-1 md:flex" onMouseLeave={() => setHover(null)}>
           {NAV.map((n) => (
@@ -444,16 +444,15 @@ export function Nav({ wide = false }) {
             </Link>
           ))}
         </nav>
-        <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-4 md:ml-0">
-          <span className="hidden md:contents">
-            <XLink size={15} />
-          </span>
+        <div className="ml-auto flex shrink-0 items-center gap-1.5 min-[360px]:gap-2 sm:gap-4 md:ml-0">
+          <XLink size={15} className="-m-1.5 p-1.5" />
           {session ? (
             <PrimaryButton small to="/dashboard">Dashboard <ArrowRight size={14} strokeWidth={2.5} /></PrimaryButton>
           ) : (
             <>
               <span className="inline-flex whitespace-nowrap py-2"><TextLink to="/signin" chevron={false}>Sign in</TextLink></span>
-              <PrimaryButton small to="/signup">Create account <ArrowRight size={14} strokeWidth={2.5} /></PrimaryButton>
+              {/* The glyph and arrow drop on the narrowest phones so the X link still fits beside it. */}
+              <PrimaryButton small to="/signup" className="max-[359px]:pl-4 max-[359px]:[&>svg:first-child]:hidden">Create account <ArrowRight size={14} strokeWidth={2.5} className="max-[359px]:hidden" /></PrimaryButton>
             </>
           )}
         </div>
